@@ -38,6 +38,9 @@ import { SettingsModal } from './components/SettingsModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { EditDayModal } from './components/EditDayModal';
 import { ExportModal } from './components/ExportModal';
+import { BackHomePrompt } from './components/BackHomePrompt';
+import { useHomeGeofence } from './hooks/useHomeGeofence';
+import { useReminderConfig, syncPushSchedule, nextLocalTime, showLocalNotification } from './utils/reminders';
 
 export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
@@ -109,6 +112,48 @@ export default function App() {
       saveActiveSession(next);
       return next;
     });
+  };
+
+  // --- Reminders & home area ---
+  const reminderCfg = useReminderConfig();
+  const shiftRunning = session.status !== 'not_started' && session.status !== 'ended' && !!session.startDayTimestamp;
+  const [isBackHomeOpen, setIsBackHomeOpen] = useState(false);
+  const [closeRequest, setCloseRequest] = useState(0); // bump to open the End & Save dialog in the tracker
+
+  // Tell the push server only the schedule + shift state (running, end-reminder time). Debounced.
+  const endReminderAt = shiftRunning && reminderCfg.safetyEnabled
+    ? nextLocalTime(session.startDayTimestamp as number, reminderCfg.safetyEndTime)
+    : null;
+  useEffect(() => {
+    const t = setTimeout(() => {
+      syncPushSchedule(reminderCfg, { shiftRunning, endReminderAt }).catch(err => console.warn('Push sync failed', err));
+    }, 800);
+    return () => clearTimeout(t);
+  }, [reminderCfg, shiftRunning, endReminderAt]);
+
+  // Watch location only while a shift runs and the app is open; prompt once per return home.
+  useHomeGeofence({
+    enabled: reminderCfg.homeEnabled && shiftRunning,
+    home: reminderCfg.home,
+    shiftStart: session.startDayTimestamp,
+    onArrivedHome: () => {
+      setIsBackHomeOpen(true);
+      showLocalNotification('Back home, done working?', 'Stop the timer?', 'gig-home');
+    },
+  });
+
+  // "Stop": end work time now (like Headed Home) and open the existing End & Save dialog.
+  const handleBackHomeStop = () => {
+    setIsBackHomeOpen(false);
+    const t = Date.now();
+    handleUpdateSession(prev => ({
+      ...prev,
+      status: 'heading_home',
+      workSegments: (prev.workSegments || []).map((seg, i, a) => (i === a.length - 1 && !seg.endTime ? { ...seg, endTime: t } : seg)),
+      breakSegments: (prev.breakSegments || []).map((seg, i, a) => (i === a.length - 1 && !seg.endTime ? { ...seg, endTime: t } : seg)),
+    }));
+    setActiveTab('tracker');
+    setCloseRequest(n => n + 1);
   };
 
   const handleSaveDayRecord = (record: DayRecord) => {
@@ -252,6 +297,8 @@ export default function App() {
             onSaveDayRecord={handleSaveDayRecord}
             onOpenHelp={() => setIsOnboardingOpen(true)}
             onUpdateSettings={setSettings}
+            closeRequest={closeRequest}
+            onCloseRequestHandled={() => setCloseRequest(0)}
           />
         )}
 
@@ -336,6 +383,8 @@ export default function App() {
         settings={settings}
         onImportRecords={handleImportRecords}
       />
+
+      <BackHomePrompt isOpen={isBackHomeOpen} onStop={handleBackHomeStop} onKeepGoing={() => setIsBackHomeOpen(false)} />
     </div>
   );
 }

@@ -1,0 +1,25 @@
+# gig-push: Web Push reminders for Gig Efficiency Tracker (https://gig.marlylabs.app).
+# Pattern copied from heaven-push. Deploy from this folder: npx wrangler deploy
+name = "gig-push"
+main = "src/index.js"
+compatibility_date = "2026-10-26"
+account_id = "6f20f1c89774e0a7df0600e9d0d7c577"
+workers_dev = false
+routes = [{ pattern = "gig-push.marlylabs.app", custom_domain = true }]
+
+# No request logs / traces kept
+[observability]
+enabled = false
+
+# One record per push subscription: schedule, IANA timezone, shift state. Never any location.
+[[kv_namespaces]]
+binding = "SUBS"
+id = "3a1a39158c8d406c96d93d7a5bc0be97"
+
+# Secrets (set with `wrangler secret put`, never committed): VAPID_PRIVATE_JWK, VAPID_PUBLIC
+[vars]
+VAPID_SUBJECT = "https://gig.marlylabs.app"
+
+# Check for due reminders every 5 minutes
+[triggers]
+crons = ["*/5 * * * *"]

@@ -20,6 +20,7 @@ import { AppSettings } from '../types';
 import { ClearDataModal } from './ClearDataModal';
 import { PWAInstallButton } from './PWAInstallButton';
 import { NumericInput } from './NumericInput';
+import { RemindersSettings } from './RemindersSettings';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -199,6 +200,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="pt-1">
                 <PWAInstallButton variant="settings" />
               </div>
+              {/* Reminders & Home (saves instantly, independent of Save Settings) */}
+              <RemindersSettings />
             </div>
           )}
 

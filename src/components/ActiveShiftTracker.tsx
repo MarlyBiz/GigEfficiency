@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Play, 
   Briefcase, 
@@ -43,6 +43,9 @@ interface ActiveShiftTrackerProps {
   onSaveDayRecord: (record: DayRecord) => void;
   onOpenHelp: () => void;
   onUpdateSettings?: React.Dispatch<React.SetStateAction<AppSettings>>;
+  /** Incremented by the app (Back-home prompt → Stop) to open the End & Save dialog. */
+  closeRequest?: number;
+  onCloseRequestHandled?: () => void;
 }
 
 export const ActiveShiftTracker: React.FC<ActiveShiftTrackerProps> = ({
@@ -55,8 +58,16 @@ export const ActiveShiftTracker: React.FC<ActiveShiftTrackerProps> = ({
   onSaveDayRecord,
   onOpenHelp,
   onUpdateSettings,
+  closeRequest,
+  onCloseRequestHandled,
 }) => {
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+  useEffect(() => {
+    if (closeRequest) {
+      setIsCloseModalOpen(true);
+      onCloseRequestHandled?.();
+    }
+  }, [closeRequest]);
   const [isManualTimeModalOpen, setIsManualTimeModalOpen] = useState(false);
   const [newPlatformName, setNewPlatformName] = useState('');
   const [isAddingPlatform, setIsAddingPlatform] = useState(false);

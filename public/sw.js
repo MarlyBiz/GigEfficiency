@@ -2,7 +2,7 @@
  * Gig Efficiency Tracker - Auto-Updating Offline Service Worker
  */
 
-const CACHE_NAME = 'gig-tracker-v2.5.1';
+const CACHE_NAME = 'gig-tracker-v2.6.0';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -89,6 +89,36 @@ self.addEventListener('fetch', event => {
         .catch(() => null);
 
       return cachedResponse || fetchPromise.then(res => res || new Response('Offline', { status: 503 }));
+    })
+  );
+});
+
+// ---------- Web Push (work reminders + still-working reminder from gig-push) ----------
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data && event.data.text() }; }
+  const title = data.title || 'Gig Efficiency Tracker';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      tag: data.tag || 'gig',
+      icon: '/pwa-192x192.png',
+      badge: '/pwa-192x192.png',
+      data: { url: data.url || '/' },
+    })
+  );
+});
+
+// Tapping a notification focuses an open app window or opens the app
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (c.url.startsWith(self.location.origin) && 'focus' in c) return c.focus();
+      }
+      return self.clients.openWindow(target);
     })
   );
 });
