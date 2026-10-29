@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { X, FileDown, FileText, CheckCircle2, Calendar, FileSpreadsheet } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { X, FileDown, FileText, CheckCircle2, Calendar, FileSpreadsheet, FileUp } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { AppSettings, DayRecord, ExpenseRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate } from '../utils/calculations';
 import { getCategoryMeta } from '../utils/expenses';
+import { importShiftsCSV } from '../utils/csvImport';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface ExportModalProps {
   records: DayRecord[];
   expenses?: ExpenseRecord[];
   settings: AppSettings;
+  onImportRecords?: (records: DayRecord[]) => void;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -24,9 +26,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   records,
   expenses = [],
   settings,
+  onImportRecords,
 }) => {
   const [exportType, setExportType] = useState<'csv' | 'pdf_summary' | 'pdf_tax'>('csv');
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [importMessage, setImportMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
@@ -96,6 +101,26 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
     setDownloadSuccess(true);
     setTimeout(() => setDownloadSuccess(false), 3000);
+  };
+
+  // --- Shifts CSV Import (reads this app's own shifts CSV exports) ---
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file || !onImportRecords) return;
+    try {
+      const { toAdd, duplicates, invalid } = importShiftsCSV(await file.text(), records, settings);
+      const skipped = `${duplicates} duplicate${duplicates === 1 ? '' : 's'} skipped${invalid ? `, ${invalid} unreadable row${invalid === 1 ? '' : 's'}` : ''}`;
+      if (toAdd.length === 0) {
+        setImportMessage({ ok: false, text: `Nothing to import (${skipped}).` });
+        return;
+      }
+      if (!window.confirm(`Import ${toAdd.length} day${toAdd.length === 1 ? '' : 's'}?`)) return;
+      onImportRecords(toAdd);
+      setImportMessage({ ok: true, text: `Imported ${toAdd.length} day${toAdd.length === 1 ? '' : 's'} (${skipped}).` });
+    } catch (err) {
+      setImportMessage({ ok: false, text: `Import failed: ${err instanceof Error ? err.message : String(err)}` });
+    }
   };
 
   // --- Expenses CSV Export ---
@@ -254,6 +279,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </div>
         )}
 
+        {importMessage && (
+          <div className={`p-3 rounded-2xl flex items-center gap-2 text-xs font-bold border ${importMessage.ok ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300' : 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-300'}`}>
+            <CheckCircle2 className="w-4 h-4" />
+            <span data-testid="import-result">{importMessage.text}</span>
+          </div>
+        )}
+
         <div className="space-y-3">
           {/* Option 1: PDF Summary Statement */}
           <div
@@ -338,6 +370,30 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             </div>
             <FileDown className="w-5 h-5 text-slate-400 group-hover:text-rose-600 transition-colors shrink-0" />
           </div>
+
+          {/* Option 5: Import Shifts CSV (merges into history, skips duplicates) */}
+          {onImportRecords && (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 flex items-center justify-between gap-3 cursor-pointer transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-400 flex items-center justify-center shrink-0">
+                  <FileUp className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-violet-700 dark:group-hover:text-violet-400 transition-colors">
+                    Import CSV
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Load a shifts CSV exported from this app. Days already in history are skipped.
+                  </p>
+                </div>
+              </div>
+              <FileUp className="w-5 h-5 text-slate-400 group-hover:text-violet-600 transition-colors shrink-0" />
+              <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" data-testid="import-input" onClick={e => e.stopPropagation()} onChange={handleImportFile} />
+            </div>
+          )}
         </div>
 
         <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end">

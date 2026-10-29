@@ -125,6 +125,13 @@ export default function App() {
     setRecords(next);
   };
 
+  // Merge records imported from CSV (already de-duplicated) into history
+  const handleImportRecords = (imported: DayRecord[]) => {
+    const next = [...imported.sort((a, b) => b.startTime - a.startTime), ...loadHistory()];
+    saveHistory(next);
+    setRecords(next);
+  };
+
   const handleDeleteRecord = (id: string) => {
     const next = deleteDayRecord(id);
     setRecords(next);
@@ -327,6 +334,7 @@ export default function App() {
         records={records}
         expenses={expenses}
         settings={settings}
+        onImportRecords={handleImportRecords}
       />
     </div>
   );
