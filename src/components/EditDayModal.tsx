@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { X, Save, Trash2, Calendar, AlertTriangle, Gift, Plus, Edit3 } from 'lucide-react';
 import { AppSettings, DayRecord, PlatformSlot, BonusEntry } from '../types';
-import { formatCurrency } from '../utils/calculations';
+import { formatCurrency, formatHM, parseHM } from '../utils/calculations';
 import { getBonusTypeMeta } from '../utils/bonuses';
 import { BonusEntryModal } from './BonusEntryModal';
 import { NumericInput } from './NumericInput';
@@ -31,8 +31,8 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
   if (!isOpen || !record) return null;
 
   const [dateStr, setDateStr] = useState(record.dateStr);
-  const [totalHours, setTotalHours] = useState((record.totalSeconds / 3600).toFixed(2));
-  const [workHours, setWorkHours] = useState((record.workSeconds / 3600).toFixed(2));
+  const [totalHours, setTotalHours] = useState(formatHM(record.totalSeconds));
+  const [workHours, setWorkHours] = useState(formatHM(record.workSeconds));
   const [totalMiles, setTotalMiles] = useState(String(record.totalMiles));
   const [workMiles, setWorkMiles] = useState(String(record.workMiles));
   const [notes, setNotes] = useState(record.notes || '');
@@ -68,16 +68,19 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
   const totalEarnings = baseEarnings + totalBonusEarnings;
 
   const handleSave = () => {
-    const tHours = parseFloat(totalHours) || 0;
-    const wHours = parseFloat(workHours) || 0;
+    // Durations are typed as "2h 15m" (also accepts "2:15", "45m"); stored as whole seconds.
+    const tSeconds = parseHM(totalHours) ?? record.totalSeconds;
+    const wSeconds = parseHM(workHours) ?? record.workSeconds;
+    const tHours = tSeconds / 3600;
+    const wHours = wSeconds / 3600;
     const tMiles = parseFloat(totalMiles) || 0;
     const wMiles = parseFloat(workMiles) || 0;
 
     const updated: DayRecord = {
       ...record,
       dateStr,
-      totalSeconds: Math.round(tHours * 3600),
-      workSeconds: Math.round(wHours * 3600),
+      totalSeconds: tSeconds,
+      workSeconds: wSeconds,
       totalMiles: tMiles,
       workMiles: wMiles,
       platformEarnings: platforms,
@@ -127,24 +130,26 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
           {/* Hours Inputs */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Active Work Hours</label>
-              <NumericInput
-                step="0.1"
-                min={0}
+              <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Active Work Time</label>
+              <input
+                type="text"
+                aria-label="Active Work Time"
                 value={workHours}
-                onChange={val => setWorkHours(String(val))}
-                placeholder="0"
+                onChange={e => setWorkHours(e.target.value)}
+                onBlur={() => { const s = parseHM(workHours); if (s !== null) setWorkHours(formatHM(s)); }}
+                placeholder="e.g. 2h 15m"
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
               />
             </div>
             <div>
-              <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Total Shift Hours</label>
-              <NumericInput
-                step="0.1"
-                min={0}
+              <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Total Shift Time</label>
+              <input
+                type="text"
+                aria-label="Total Shift Time"
                 value={totalHours}
-                onChange={val => setTotalHours(String(val))}
-                placeholder="0"
+                onChange={e => setTotalHours(e.target.value)}
+                onBlur={() => { const s = parseHM(totalHours); if (s !== null) setTotalHours(formatHM(s)); }}
+                placeholder="e.g. 2h 15m"
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
               />
             </div>

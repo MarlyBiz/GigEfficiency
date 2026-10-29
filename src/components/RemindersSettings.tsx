@@ -163,12 +163,14 @@ export const RemindersSettings: React.FC = () => {
             ))}
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={addReminder} className={smallBtn}><Plus className="w-3.5 h-3.5" />Add reminder</button>
-              <label className="text-[11px] text-slate-500 ml-auto">Remind me</label>
+              <span className="ml-auto flex items-center gap-1.5 whitespace-nowrap">
+              <label className="text-[11px] text-slate-500">Remind me</label>
               <input type="text" inputMode="numeric" aria-label="Minutes before" value={leadText}
                 onChange={e => setLeadText(e.target.value)}
                 onBlur={() => { const n = parseLeadMinutes(leadText); setLeadText(String(n)); update({ leadMinutes: n }); }}
                 className={`${input} w-16 text-right`} />
               <span className="text-[11px] text-slate-500">min before</span>
+              </span>
             </div>
             <button type="button" disabled={busy}
               onClick={async () => { try { await sendTestPush('start'); setMsg({ ok: true, text: 'Test push sent.' }); } catch (e) { fail(e); } }}

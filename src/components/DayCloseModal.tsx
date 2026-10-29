@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { X, CheckCircle2, DollarSign, Clock, Navigation, TrendingUp, Sparkles, Fuel, Gift } from 'lucide-react';
 import { ActiveSession, AppSettings, DayRecord } from '../types';
-import { formatCurrency, formatDuration, formatRate, getEffectiveDateString } from '../utils/calculations';
+import { formatCurrency, formatDuration, formatRate, getEffectiveDateString, formatHM } from '../utils/calculations';
 import { getBonusTypeMeta } from '../utils/bonuses';
 
 interface DayCloseModalProps {
@@ -124,7 +124,7 @@ export const DayCloseModal: React.FC<DayCloseModalProps> = ({
             </div>
           )}
           <span className="text-xs text-slate-600 dark:text-slate-400 mt-1 block">
-            {formatDuration(workSeconds)} active work ({formatDuration(totalSeconds)} total)
+            {formatHM(workSeconds)} active work ({formatHM(totalSeconds)} total)
           </span>
         </div>
 

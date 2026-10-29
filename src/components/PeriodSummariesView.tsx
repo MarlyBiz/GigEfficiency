@@ -18,7 +18,7 @@ import {
   Edit3 
 } from 'lucide-react';
 import { AppSettings, DayRecord } from '../types';
-import { formatCurrency, formatDuration, formatRate } from '../utils/calculations';
+import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
 
 interface PeriodSummariesViewProps {
   records: DayRecord[];
@@ -268,13 +268,13 @@ export const PeriodSummariesView: React.FC<PeriodSummariesViewProps> = ({
                     {formatCurrency(row.totalEarnings, settings.currency)}
                   </td>
                   <td className="py-3.5 px-4 text-right text-slate-700 dark:text-slate-300">
-                    {row.workHours.toFixed(1)}h
+                    {formatHM(row.workHours, { unit: 'hours' })}
                   </td>
                   <td className="py-3.5 px-4 text-right font-bold text-emerald-700 dark:text-emerald-300">
                     {formatRate(row.avgPerHourWork, settings.currency, 'hr')}
                   </td>
                   <td className="py-3.5 px-4 text-right text-slate-600 dark:text-slate-400">
-                    {row.totalHours.toFixed(1)}h
+                    {formatHM(row.totalHours, { unit: 'hours' })}
                   </td>
                   <td className="py-3.5 px-4 text-right text-blue-700 dark:text-blue-400">
                     {formatRate(row.avgPerHourTotal, settings.currency, 'hr')}

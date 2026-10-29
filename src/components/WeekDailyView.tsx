@@ -20,7 +20,7 @@ import {
   ArrowUpRight 
 } from 'lucide-react';
 import { AppSettings, DayRecord } from '../types';
-import { formatCurrency, formatDuration, formatRate, getWeekBoundaries } from '../utils/calculations';
+import { formatCurrency, formatDuration, formatRate, getWeekBoundaries, formatHM } from '../utils/calculations';
 import { NumericInput } from './NumericInput';
 
 interface WeekDailyViewProps {
@@ -203,10 +203,10 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
               Active Work Hours
             </div>
             <div className="text-2xl font-extrabold font-mono text-slate-900 dark:text-white mt-1">
-              {weekWorkHours.toFixed(1)}h
+              {formatHM(weekWorkSeconds)}
             </div>
             <div className="text-[11px] text-slate-500 mt-0.5">
-              {weekTotalHours.toFixed(1)}h total time
+              {formatHM(weekTotalSeconds)} total time
             </div>
           </div>
 
@@ -428,14 +428,14 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
                       <div className="flex items-center justify-between">
                         <span className="text-slate-500">Work Time:</span>
                         <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
-                          {formatDuration(day.record.workSeconds)}
+                          {formatHM(day.record.workSeconds)}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <span className="text-slate-500">Total Time:</span>
                         <span className="font-mono text-slate-600 dark:text-slate-400">
-                          {formatDuration(day.record.totalSeconds)}
+                          {formatHM(day.record.totalSeconds)}
                         </span>
                       </div>
 

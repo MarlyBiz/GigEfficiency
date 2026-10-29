@@ -19,7 +19,7 @@ import {
   Gift
 } from 'lucide-react';
 import { AppSettings, DayRecord } from '../types';
-import { formatCurrency, formatDuration, formatRate } from '../utils/calculations';
+import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
 import { getBonusTypeMeta } from '../utils/bonuses';
 
 interface HistoryViewProps {
@@ -139,7 +139,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-400 pt-1">
                       <span>Work $/Hr: <strong className="font-mono text-emerald-700 dark:text-emerald-400">{formatRate(record.dollarsPerHourWork, settings.currency, 'hr')}</strong></span>
                       <span>Total $/Hr: <strong className="font-mono text-blue-700 dark:text-blue-400">{formatRate(record.dollarsPerHourTotal, settings.currency, 'hr')}</strong></span>
-                      <span>Work Time: <strong className="font-mono text-slate-800 dark:text-slate-200">{formatDuration(record.workSeconds)}</strong></span>
+                      <span>Work Time: <strong className="font-mono text-slate-800 dark:text-slate-200">{formatHM(record.workSeconds)}</strong></span>
                       <span>Miles: <strong className="font-mono text-slate-800 dark:text-slate-200">{record.totalMiles} mi</strong></span>
                       <span>Tax Write-off: <strong className="font-mono text-amber-700 dark:text-amber-400">{formatCurrency(estTax, settings.currency)}</strong></span>
                     </div>

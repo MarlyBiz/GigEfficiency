@@ -7,7 +7,7 @@ import React, { useRef, useState } from 'react';
 import { X, FileDown, FileText, CheckCircle2, Calendar, FileSpreadsheet, FileUp } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { AppSettings, DayRecord, ExpenseRecord } from '../types';
-import { formatCurrency, formatDuration, formatRate } from '../utils/calculations';
+import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
 import { getCategoryMeta } from '../utils/expenses';
 import { importShiftsCSV } from '../utils/csvImport';
 
@@ -203,7 +203,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     doc.text(`Total Miles Driven: ${totalMiles.toLocaleString()} miles`, margin, y);
     doc.text(`IRS Mileage Deduction: ${formatCurrency(totalTaxDeduction, settings.currency)}`, 110, y);
     y += 5;
-    doc.text(`Total Active Work Time: ${(workSeconds / 3600).toFixed(1)} hrs`, margin, y);
+    doc.text(`Total Active Work Time: ${formatHM(workSeconds)}`, margin, y);
     doc.text(`Total Logged Expenses: ${formatCurrency(totalExpensesAmount, settings.currency)}`, 110, y);
     y += 5;
     doc.text(`Average Work $/Hr: ${formatRate(avgWorkRate, settings.currency, 'hr')}`, margin, y);
@@ -217,8 +217,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.text('Date', margin, y);
-    doc.text('Work Hrs', 45, y);
-    doc.text('Total Hrs', 65, y);
+    doc.text('Work Time', 45, y);
+    doc.text('Total Time', 65, y);
     doc.text('Earnings', 85, y);
     doc.text('Work $/Hr', 110, y);
     doc.text('Miles', 135, y);
@@ -237,8 +237,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       }
       const rTax = r.totalMiles * (settings.standardMileageRate || 0.67);
       doc.text(r.dateStr, margin, y);
-      doc.text((r.workSeconds / 3600).toFixed(1), 45, y);
-      doc.text((r.totalSeconds / 3600).toFixed(1), 65, y);
+      doc.text(formatHM(r.workSeconds), 45, y);
+      doc.text(formatHM(r.totalSeconds), 65, y);
       doc.text(formatCurrency(r.totalEarnings, settings.currency), 85, y);
       doc.text(formatRate(r.dollarsPerHourWork, settings.currency, 'hr'), 110, y);
       doc.text(`${r.totalMiles}`, 135, y);

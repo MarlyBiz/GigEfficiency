@@ -16,7 +16,7 @@ import {
   Layers 
 } from 'lucide-react';
 import { AppSettings, DayRecord } from '../types';
-import { formatCurrency, formatDuration, formatRate } from '../utils/calculations';
+import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
 
 interface AnalyticsChartsProps {
   records: DayRecord[];
@@ -194,7 +194,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
               {formatRate(overallWorkPerHour, settings.currency, 'hr')}
             </span>
             <span className="text-[11px] text-emerald-800/80 dark:text-emerald-400/80 mt-0.5 block">
-              {totalWorkHours.toFixed(1)} active work hours
+              {formatHM(totalWorkSeconds)} active work time
             </span>
           </div>
 

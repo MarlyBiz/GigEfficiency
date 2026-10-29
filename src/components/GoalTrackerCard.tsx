@@ -6,7 +6,7 @@
 import React, { useState } from 'react';
 import { Target, TrendingUp, DollarSign, Clock, Sparkles, CheckCircle, ChevronRight, Edit3 } from 'lucide-react';
 import { AppSettings } from '../types';
-import { formatCurrency, formatRate } from '../utils/calculations';
+import { formatCurrency, formatRate, formatHM } from '../utils/calculations';
 import { NumericInput } from './NumericInput';
 
 interface GoalTrackerCardProps {
@@ -45,7 +45,7 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
   // Remaining work hours estimated at current active pace
   const estimatedHoursRemaining =
     currentWorkRate > 0 && earningsRemaining > 0
-      ? (earningsRemaining / currentWorkRate).toFixed(1)
+      ? formatHM(earningsRemaining / currentWorkRate, { unit: 'hours' })
       : null;
 
   // Hourly Rate Progress Calculations
@@ -256,7 +256,7 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
             <div>
               {!isDailyGoalAchieved && estimatedHoursRemaining && (
                 <span className="text-slate-700 dark:text-slate-300 font-medium">
-                  ~{estimatedHoursRemaining}h remaining at current work pace ({formatRate(currentWorkRate, settings.currency, 'hr')})
+                  ~{estimatedHoursRemaining} remaining at current work pace ({formatRate(currentWorkRate, settings.currency, 'hr')})
                 </span>
               )}
             </div>
@@ -366,7 +366,7 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
             </div>
 
             <div className="text-slate-500 dark:text-slate-400 text-[11px]">
-              Active Work Hours: <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{workHours.toFixed(2)}h</span>
+              Active Work Hours: <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{formatHM(workSeconds)}</span>
             </div>
           </div>
         </div>
