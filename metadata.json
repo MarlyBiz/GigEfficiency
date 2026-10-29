@@ -1,0 +1,6 @@
+{
+  "name": "Gig Efficiency Tracker",
+  "description": "A real-time multi-timer, Schedule C expense tracker, and efficiency calculator for multi-app gig workers with goals, charts, and PDF export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

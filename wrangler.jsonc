@@ -1,0 +1,9 @@
+{
+  // Cloudflare static hosting: serves the Vite build output (npm run build -> dist/)
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gig-efficiency",
+  "compatibility_date": "2026-10-26",
+  "assets": { "directory": "./dist" },
+  "routes": [{ "pattern": "gig.marlylabs.app", "custom_domain": true }],
+  "workers_dev": false
+}

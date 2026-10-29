@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#022c22"/>
+      <stop offset="100%" stop-color="#064e3b"/>
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded squircle -->
+  <rect width="512" height="512" rx="128" fill="url(#bg)"/>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="none" stroke="#10b981" stroke-width="6" stroke-opacity="0.3"/>
+  
+  <!-- Outer Speedometer / Efficiency Arc -->
+  <path d="M 120 370 A 170 170 0 1 1 392 370" fill="none" stroke="#065f46" stroke-width="28" stroke-linecap="round"/>
+  <path d="M 120 370 A 170 170 0 1 0 350 160" fill="none" stroke="url(#emeraldGrad)" stroke-width="28" stroke-linecap="round"/>
+
+  <!-- Center Clock Hands & Dollar Efficiency Symbol -->
+  <circle cx="256" cy="256" r="32" fill="#0f172a" stroke="#10b981" stroke-width="6"/>
+  <!-- Clock ticks -->
+  <line x1="256" y1="256" x2="256" y2="150" stroke="#34d399" stroke-width="12" stroke-linecap="round"/>
+  <line x1="256" y1="256" x2="330" y2="256" stroke="#38bdf8" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Gig Car / Delivery Emblem -->
+  <g transform="translate(196, 320)">
+    <rect x="0" y="0" width="120" height="56" rx="18" fill="#10b981"/>
+    <text x="60" y="38" font-family="system-ui, sans-serif" font-size="34" font-weight="900" fill="#ffffff" text-anchor="middle">$</text>
+  </g>
+</svg>
