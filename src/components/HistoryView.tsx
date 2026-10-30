@@ -198,6 +198,11 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                             </span>
                           ))
                       )}
+                      {(record.cashTips || 0) > 0 && (
+                        <span data-testid="history-cash-tips" className="px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          Cash tips: {formatCurrency(record.cashTips || 0, settings.currency)}
+                        </span>
+                      )}
 
                       {record.bonusEarnings && record.bonusEarnings.length > 0 && (
                         record.bonusEarnings.map((b, bIdx) => {

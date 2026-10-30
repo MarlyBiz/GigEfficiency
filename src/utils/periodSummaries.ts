@@ -84,6 +84,7 @@ export interface SummaryInput {
   totalMiles: number;
   workMiles: number;
   bonus: number;
+  cashTips?: number;
   notes: string;
   createdAt?: number;
 }
@@ -98,7 +99,8 @@ export function buildSummaryRecord(i: SummaryInput, now = Date.now()): DayRecord
   const bonusEarnings: BonusEntry[] = bonusAmt > 0
     ? [{ id: `${i.id || 'sum'}-bonus`, platform: 'All apps', bonusType: 'other_custom', amount: bonusAmt, dateStr, notes: 'Bonus total (catch-up)', createdAt: now }]
     : [];
-  const totalEarnings = Number((baseEarnings + bonusAmt).toFixed(2));
+  const tips = Math.max(0, Number(i.cashTips) || 0);
+  const totalEarnings = Number((baseEarnings + bonusAmt + tips).toFixed(2));
   const tH = i.totalSeconds / 3600, wH = i.workSeconds / 3600;
   const r2 = (n: number) => Number(n.toFixed(2));
   return {
@@ -116,6 +118,7 @@ export function buildSummaryRecord(i: SummaryInput, now = Date.now()): DayRecord
     bonusEarnings,
     baseEarnings,
     totalBonusEarnings: bonusAmt,
+    cashTips: tips,
     totalEarnings,
     dollarsPerHourTotal: tH > 0 ? r2(totalEarnings / tH) : 0,
     dollarsPerHourWork: wH > 0 ? r2(totalEarnings / wH) : 0,

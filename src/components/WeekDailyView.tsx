@@ -46,7 +46,7 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
   const rule = ruleFor(settings, weekApp || undefined);
   const appNames = [...new Set([...(settings.defaultPlatforms || []), ...records.flatMap(r => (r.platformEarnings || []).map(p => p.name))])];
   const viewRecords = weekApp
-    ? records.map(r => withRates({ ...r, platformEarnings: (r.platformEarnings || []).filter(p => p.name === weekApp), bonusEarnings: (r.bonusEarnings || []).filter(b => b.platform === weekApp) }))
+    ? records.map(r => withRates({ ...r, cashTips: 0, platformEarnings: (r.platformEarnings || []).filter(p => p.name === weekApp), bonusEarnings: (r.bonusEarnings || []).filter(b => b.platform === weekApp) }))
         .filter(r => r.totalEarnings > 0)
     : records;
   const [isEditingGoal, setIsEditingGoal] = useState<boolean>(false);
@@ -486,6 +486,11 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
                               {p.name.slice(0, 4)}: {formatCurrency(p.amount, settings.currency)}
                             </span>
                           ))}
+                        {(day.record.cashTips || 0) > 0 && (
+                          <span data-testid="week-cash-tips" className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            Cash tips: {formatCurrency(day.record.cashTips || 0, settings.currency)}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>

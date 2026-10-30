@@ -46,6 +46,7 @@ export const SummaryEditorModal: React.FC<Props> = ({ record, records, settings,
   const [yearKey, setYearKey] = useState(editing && startKind === 'year' ? editing.periodKey! : String(new Date().getFullYear() - 1));
   const [rows, setRows] = useState<PlatformSlot[]>(editing?.platformEarnings || []);
   const [bonus, setBonus] = useState<number>(editing?.totalBonusEarnings || 0);
+  const [tips, setTips] = useState<number>(editing?.cashTips || 0);
   const [workText, setWorkText] = useState(editing ? formatHM(editing.workSeconds) : '');
   const [totalText, setTotalText] = useState(editing ? formatHM(editing.totalSeconds) : '');
   const [totalMiles, setTotalMiles] = useState(editing ? String(editing.totalMiles) : '');
@@ -59,14 +60,14 @@ export const SummaryEditorModal: React.FC<Props> = ({ record, records, settings,
     const k = recordKind(r) as 'month' | 'year';
     setEditing(r); setKind(k);
     if (k === 'month') setMonthKey(r.periodKey!); else setYearKey(r.periodKey!);
-    setRows(r.platformEarnings || []); setBonus(r.totalBonusEarnings || 0);
+    setRows(r.platformEarnings || []); setBonus(r.totalBonusEarnings || 0); setTips(r.cashTips || 0);
     setWorkText(formatHM(r.workSeconds)); setTotalText(formatHM(r.totalSeconds));
     setTotalMiles(String(r.totalMiles)); setWorkMiles(String(r.workMiles)); setNotes(r.notes || ''); setError(null);
   };
 
   const periodKey = kind === 'month' ? monthKey : yearKey;
   const conflicts = useMemo(() => findSummaryConflicts(records, kind, periodKey, editing?.id), [records, kind, periodKey, editing?.id]);
-  const total = sumRows(rows) + (Number(bonus) || 0);
+  const total = sumRows(rows) + (Number(bonus) || 0) + (Number(tips) || 0);
   const now = new Date();
   const years = Array.from({ length: 15 }, (_, i) => String(now.getFullYear() - 1 - i));
 
@@ -91,7 +92,7 @@ export const SummaryEditorModal: React.FC<Props> = ({ record, records, settings,
     onSave(buildSummaryRecord({
       id: editing?.id, kind, periodKey, rows, workSeconds, totalSeconds,
       totalMiles: parseFloat(totalMiles) || 0, workMiles: parseFloat(workMiles) || 0,
-      bonus: Number(bonus) || 0, notes, createdAt: editing?.createdAt,
+      bonus: Number(bonus) || 0, cashTips: Number(tips) || 0, notes, createdAt: editing?.createdAt,
     }), removeIds);
     onClose();
   };
@@ -164,6 +165,14 @@ export const SummaryEditorModal: React.FC<Props> = ({ record, records, settings,
             <div className="flex items-center gap-1 pr-8">
               <span className="text-slate-500 font-mono">{settings.currency}</span>
               <NumericInput step="0.01" min={0} value={bonus} onChange={v => setBonus(Math.max(0, Number(v) || 0))} placeholder="0"
+                className="w-24 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-mono text-xs text-right focus:outline-none focus:border-emerald-500" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+            <span className="text-slate-700 dark:text-slate-300 font-medium">Cash tips (optional)</span>
+            <div className="flex items-center gap-1 pr-8">
+              <span className="text-slate-500 font-mono">{settings.currency}</span>
+              <NumericInput step="0.01" min={0} value={tips} onChange={v => setTips(Math.max(0, Number(v) || 0))} placeholder="0" aria-label="Summary cash tips"
                 className="w-24 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-mono text-xs text-right focus:outline-none focus:border-emerald-500" />
             </div>
           </div>

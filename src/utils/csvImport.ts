@@ -174,9 +174,10 @@ export function importShiftsCSV(text: string, existing: DayRecord[], settings: A
       }
       const baseEarnings = round2(platformEarnings.reduce((s, p) => s + p.amount, 0));
       const totalEarnings = num(get(col('Total Earnings')));
+      const cashTips = Math.max(0, num(get(col('Cash Tips')))); // missing column = 0
       // This layout has no bonus breakdown; keep any remainder as one bonus entry
       // so totals survive loadHistory(), which recomputes bonuses from entries.
-      const bonusAmt = round2(totalEarnings - baseEarnings);
+      const bonusAmt = round2(totalEarnings - baseEarnings - cashTips);
       const bonusEarnings: BonusEntry[] = bonusAmt > 0
         ? [{ id: `${id}-b0`, platform: 'Imported', bonusType: 'other_custom', amount: bonusAmt, dateStr, notes: 'Bonus total from CSV import', createdAt: now }]
         : [];
@@ -187,7 +188,7 @@ export function importShiftsCSV(text: string, existing: DayRecord[], settings: A
         workMiles: num(get(col('Work Distance'))),
         platformEarnings, bonusEarnings, baseEarnings,
         totalBonusEarnings: bonusEarnings.reduce((s, b) => s + b.amount, 0),
-        totalEarnings, notes: get(iNotes), createdAt: now,
+        cashTips, totalEarnings, notes: get(iNotes), createdAt: now,
       });
       key = minuteKey(dateStr, startTime);
     } else {
@@ -215,12 +216,13 @@ export function importShiftsCSV(text: string, existing: DayRecord[], settings: A
       const startTime = localTimestamp(dateStr, 12, 0) as number;
       const baseEarnings = round2(platformEarnings.reduce((s, p) => s + p.amount, 0));
       const totalBonusEarnings = round2(bonusEarnings.reduce((s, b) => s + b.amount, 0));
+      const cashTips = Math.max(0, num(get(col('Cash Tips')))); // older files: no column = 0
       record = withRates({
         id, dateStr, startTime, endTime: startTime + totalSeconds * 1000, totalSeconds, workSeconds,
         totalMiles: num(get(col('Total Miles'))),
         workMiles: num(get(col('Work Miles'))),
-        platformEarnings, bonusEarnings, baseEarnings, totalBonusEarnings,
-        totalEarnings: num(get(col('Total Earnings'))) || round2(baseEarnings + totalBonusEarnings),
+        platformEarnings, bonusEarnings, baseEarnings, totalBonusEarnings, cashTips,
+        totalEarnings: num(get(col('Total Earnings'))) || round2(baseEarnings + totalBonusEarnings + cashTips),
         notes: get(col('Notes')), createdAt: now,
       });
       key = summaryKey(record);

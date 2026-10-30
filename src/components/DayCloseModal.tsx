@@ -76,6 +76,7 @@ export const DayCloseModal: React.FC<DayCloseModalProps> = ({
       totalMiles: session.totalMiles || 0,
       workMiles: session.workMiles || 0,
       platformEarnings: session.platformEarnings || [],
+      cashTips: Math.max(0, Number(session.cashTips) || 0),
       bonusEarnings: session.bonusEarnings || [],
       baseEarnings,
       totalBonusEarnings,
@@ -183,6 +184,12 @@ export const DayCloseModal: React.FC<DayCloseModalProps> = ({
                 </span>
               </div>
             ))}
+            {(session.cashTips || 0) > 0 && (
+              <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-xs border border-emerald-200 dark:border-emerald-900">
+                <span className="text-slate-700 dark:text-slate-300 font-medium">Cash tips</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white">{formatCurrency(session.cashTips || 0, settings.currency)}</span>
+              </div>
+            )}
           </div>
         </div>
 

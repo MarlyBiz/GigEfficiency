@@ -28,12 +28,14 @@ const round2 = (n: number) => Number((Number.isFinite(n) ? n : 0).toFixed(2));
 export function withRates(r: DayRecord): DayRecord {
   const base = (r.platformEarnings || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
   const bonus = (r.bonusEarnings || []).reduce((s, b) => s + (Number(b.amount) || 0), 0);
-  const total = base + bonus;
+  const tips = Math.max(0, Number(r.cashTips) || 0);
+  const total = round2(base + bonus + tips);
   const th = r.totalSeconds / 3600, wh = r.workSeconds / 3600;
   return {
     ...r,
     baseEarnings: base,
     totalBonusEarnings: bonus,
+    cashTips: tips,
     totalEarnings: total,
     dollarsPerHourTotal: th > 0 ? round2(total / th) : 0,
     dollarsPerHourWork: wh > 0 ? round2(total / wh) : 0,
@@ -61,6 +63,7 @@ export function mergeDayRecords(existing: DayRecord, add: DayRecord): DayRecord 
     totalSeconds: (existing.totalSeconds || 0) + (add.totalSeconds || 0),
     workSeconds: (existing.workSeconds || 0) + (add.workSeconds || 0),
     totalMiles: round2((existing.totalMiles || 0) + (add.totalMiles || 0)),
+    cashTips: round2((Number(existing.cashTips) || 0) + (Number(add.cashTips) || 0)),
     workMiles: round2((existing.workMiles || 0) + (add.workMiles || 0)),
     platformEarnings: apps,
     bonusEarnings: bonuses,
@@ -147,7 +150,7 @@ export function saveUndoSnapshot(s: UndoSnapshot) {
 export function daySignature(r: DayRecord): string {
   const apps = (r.platformEarnings || []).filter(p => Number(p.amount)).map(p => `${p.name}=${round2(Number(p.amount))}`).sort();
   const bonus = round2((r.bonusEarnings || []).reduce((s, b) => s + (Number(b.amount) || 0), 0));
-  return JSON.stringify([r.dateStr, round2(r.totalEarnings), apps, bonus, Math.round(r.totalSeconds), Math.round(r.workSeconds), round2(r.totalMiles), round2(r.workMiles)]);
+  return JSON.stringify([r.dateStr, round2(r.totalEarnings), apps, bonus, round2(Number(r.cashTips) || 0), Math.round(r.totalSeconds), Math.round(r.workSeconds), round2(r.totalMiles), round2(r.workMiles)]);
 }
 
 /**

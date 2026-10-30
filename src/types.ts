@@ -61,6 +61,8 @@ export interface ActiveSession {
   totalMiles: number;
   workMiles: number;
   notes: string;
+  /** Cash tips this shift (not tied to an app). */
+  cashTips?: number;
   /** Workday this session belongs to (set at start). */
   workdayStr?: string;
   /** 'replace' only after the user confirmed Start over; otherwise saves merge into the day. */
@@ -88,6 +90,8 @@ export interface DayRecord {
   baseEarnings?: number;
   totalBonusEarnings?: number;
   totalEarnings: number;
+  /** Cash tips for the day (not tied to an app); included in totalEarnings. Missing = 0. */
+  cashTips?: number;
   dollarsPerHourTotal: number;
   dollarsPerHourWork: number;
   dollarsPerMileTotal: number;

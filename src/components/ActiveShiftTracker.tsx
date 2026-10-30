@@ -92,7 +92,8 @@ export const ActiveShiftTracker: React.FC<ActiveShiftTrackerProps> = ({
     (sum, b) => sum + (Number(b.amount) || 0),
     0
   );
-  const totalEarnings = baseEarnings + totalBonusEarnings;
+  const cashTips = Math.max(0, Number(session.cashTips) || 0);
+  const totalEarnings = baseEarnings + totalBonusEarnings + cashTips;
 
   // Calculated Real-Time Metrics
   const totalHours = totalSeconds / 3600;
@@ -625,6 +626,26 @@ export const ActiveShiftTracker: React.FC<ActiveShiftTrackerProps> = ({
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Cash tips: separate from the apps, always here */}
+        <div className="p-3.5 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 flex items-center justify-between gap-2" data-testid="cash-tips-row">
+          <div className="min-w-0 flex-1">
+            <span className="text-xs font-bold text-slate-900 dark:text-white block">Cash tips</span>
+            <span className="text-[11px] text-slate-500">Not tied to an app · counts in your totals</span>
+          </div>
+          <div className="flex items-center gap-1.5 pr-6">
+            <span className="text-xs font-bold font-mono text-slate-500">{settings.currency}</span>
+            <NumericInput
+              step="0.01"
+              min={0}
+              value={session.cashTips || 0}
+              onChange={val => onUpdateSession(prev => ({ ...prev, cashTips: Math.max(0, Number(val) || 0) }))}
+              placeholder="0"
+              aria-label="Cash tips"
+              className="w-24 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white text-right focus:outline-none focus:border-emerald-500"
+            />
+          </div>
         </div>
 
         {/* Add custom platform */}

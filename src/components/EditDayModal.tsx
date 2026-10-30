@@ -42,6 +42,7 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
   const [notes, setNotes] = useState(record.notes || '');
   const [platforms, setPlatforms] = useState<PlatformSlot[]>(record.platformEarnings || []);
   const [bonuses, setBonuses] = useState<BonusEntry[]>(record.bonusEarnings || []);
+  const [cashTips, setCashTips] = useState<number>(Math.max(0, Number(record.cashTips) || 0));
   const [isBonusModalOpen, setIsBonusModalOpen] = useState(false);
   const [editingBonus, setEditingBonus] = useState<BonusEntry | null>(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
@@ -64,7 +65,7 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
 
   const baseEarnings = platforms.reduce((s, p) => s + (p.amount || 0), 0);
   const totalBonusEarnings = bonuses.reduce((s, b) => s + (b.amount || 0), 0);
-  const totalEarnings = baseEarnings + totalBonusEarnings;
+  const totalEarnings = baseEarnings + totalBonusEarnings + cashTips;
 
   const handleSave = () => {
     // Durations are typed as "2h 15m" (also accepts "2:15", "45m"); stored as whole seconds.
@@ -90,6 +91,7 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
       workMiles: wMiles,
       platformEarnings: platforms,
       bonusEarnings: bonuses,
+      cashTips,
       baseEarnings,
       totalBonusEarnings,
       totalEarnings,
@@ -200,6 +202,14 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
               options={settings.defaultPlatforms || []}
               currency={settings.currency}
             />
+            <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900" data-testid="edit-cash-tips">
+              <span className="text-slate-700 dark:text-slate-300 font-medium">Cash tips</span>
+              <div className="flex items-center gap-1 pr-8">
+                <span className="text-slate-500 font-mono">{settings.currency}</span>
+                <NumericInput step="0.01" min={0} value={cashTips} onChange={v => setCashTips(Math.max(0, Number(v) || 0))} placeholder="0" aria-label="Cash tips"
+                  className="w-24 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-mono text-xs text-right focus:outline-none focus:border-emerald-500" />
+              </div>
+            </div>
           </div>
 
           {/* Bonuses & Quests Section */}

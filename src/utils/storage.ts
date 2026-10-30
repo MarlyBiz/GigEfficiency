@@ -88,6 +88,7 @@ export function createInitialSession(settings?: AppSettings): ActiveSession {
     breakSegments: [],
     manualAdjustmentSeconds: 0,
     manualWorkAdjustmentSeconds: 0,
+    cashTips: 0,
     platformEarnings: safePlatforms.map((name, idx) => ({
       id: `${String(name).toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Date.now()}-${idx}`,
       name: String(name),
@@ -180,7 +181,8 @@ export function loadHistory(): DayRecord[] {
 
       const baseEarnings = platformEarnings.reduce((s: number, p: any) => s + (p.amount || 0), 0);
       const totalBonusEarnings = bonusEarnings.reduce((s: number, b: any) => s + (b.amount || 0), 0);
-      const totalEarnings = Number(r?.totalEarnings) || (baseEarnings + totalBonusEarnings);
+      const cashTips = Math.max(0, Number(r?.cashTips) || 0); // older records: 0
+      const totalEarnings = Number(r?.totalEarnings) || (baseEarnings + totalBonusEarnings + cashTips);
 
       // Catch-up summaries keep their kind + period; anything else is a normal day
       const kind = r?.kind === 'month' || r?.kind === 'year' ? r.kind : undefined;
@@ -198,6 +200,7 @@ export function loadHistory(): DayRecord[] {
         bonusEarnings,
         baseEarnings,
         totalBonusEarnings,
+        cashTips,
         totalEarnings,
         dollarsPerHourTotal: Number(r?.dollarsPerHourTotal) || 0,
         dollarsPerHourWork: Number(r?.dollarsPerHourWork) || 0,
