@@ -177,6 +177,16 @@ export default function App() {
     setRecords(next);
   };
 
+  // After a JSON backup restore: re-read everything from storage
+  const handleBackupRestored = () => {
+    const nextSettings = loadSettings();
+    setSettings(nextSettings);
+    setRecords(loadHistory());
+    setExpenses(loadExpenses());
+    setSession(loadActiveSession(nextSettings));
+    window.dispatchEvent(new Event('gig-reminders-changed'));
+  };
+
   const handleDeleteRecord = (id: string) => {
     const next = deleteDayRecord(id);
     setRecords(next);
@@ -382,6 +392,7 @@ export default function App() {
         expenses={expenses}
         settings={settings}
         onImportRecords={handleImportRecords}
+        onBackupRestored={handleBackupRestored}
       />
 
       <BackHomePrompt isOpen={isBackHomeOpen} onStop={handleBackHomeStop} onKeepGoing={() => setIsBackHomeOpen(false)} />

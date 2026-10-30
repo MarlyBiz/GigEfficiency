@@ -90,12 +90,12 @@ function parseDuration(str: string): number | null {
 }
 
 /** Minute-precision key used for duplicate detection (date + local start time). */
-function minuteKey(dateStr: string, ts: number): string {
+export function minuteKey(dateStr: string, ts: number): string {
   const d = new Date(ts);
   return `${dateStr}|${d.getHours()}:${d.getMinutes()}`;
 }
 /** Fallback key for the modal layout, which carries no start time. */
-function summaryKey(r: Pick<DayRecord, 'dateStr' | 'totalSeconds' | 'totalEarnings'>): string {
+export function summaryKey(r: Pick<DayRecord, 'dateStr' | 'totalSeconds' | 'totalEarnings'>): string {
   return `${r.dateStr}|${(r.totalSeconds / 3600).toFixed(2)}|${r.totalEarnings.toFixed(2)}`;
 }
 

@@ -26,7 +26,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   goals: DEFAULT_GOALS,
 };
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   ACTIVE_SESSION: 'gig_tracker_active_session',
   HISTORY: 'gig_tracker_history_records',
   SETTINGS: 'gig_tracker_settings',

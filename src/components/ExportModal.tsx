@@ -4,12 +4,13 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { X, FileDown, FileText, CheckCircle2, Calendar, FileSpreadsheet, FileUp } from 'lucide-react';
+import { X, FileDown, FileText, CheckCircle2, Calendar, FileSpreadsheet, FileUp, FileJson, ArchiveRestore } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { AppSettings, DayRecord, ExpenseRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
 import { getCategoryMeta } from '../utils/expenses';
 import { importShiftsCSV } from '../utils/csvImport';
+import { GigBackup, applyBackup, downloadBackup, parseBackup } from '../utils/backup';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ interface ExportModalProps {
   expenses?: ExpenseRecord[];
   settings: AppSettings;
   onImportRecords?: (records: DayRecord[]) => void;
+  /** Called after a JSON backup was restored so the app reloads its state from storage. */
+  onBackupRestored?: () => void;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -27,11 +30,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   expenses = [],
   settings,
   onImportRecords,
+  onBackupRestored,
 }) => {
   const [exportType, setExportType] = useState<'csv' | 'pdf_summary' | 'pdf_tax'>('csv');
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [importMessage, setImportMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const backupInputRef = useRef<HTMLInputElement>(null);
+  const [pendingBackup, setPendingBackup] = useState<GigBackup | null>(null);
 
   if (!isOpen) return null;
 
@@ -120,6 +126,44 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       setImportMessage({ ok: true, text: `Imported ${toAdd.length} day${toAdd.length === 1 ? '' : 's'} (${skipped}).` });
     } catch (err) {
       setImportMessage({ ok: false, text: `Import failed: ${err instanceof Error ? err.message : String(err)}` });
+    }
+  };
+
+  // --- JSON full backup / restore ---
+  const handleExportBackup = () => {
+    const b = downloadBackup();
+    setImportMessage({ ok: true, text: `Backup saved (${b.data.history.length} shifts${b.data.activeSession ? ' + shift in progress' : ''}). Home location is not included.` });
+  };
+
+  // Step 1: read + validate the file. Nothing is written until the user picks Replace or Merge.
+  const handleRestoreFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      setPendingBackup(parseBackup(await file.text()));
+      setImportMessage(null);
+    } catch (err) {
+      setPendingBackup(null);
+      setImportMessage({ ok: false, text: `Restore failed: ${err instanceof Error ? err.message : String(err)} Nothing was changed.` });
+    }
+  };
+
+  // Step 2: apply the chosen mode, then let the app reload its state.
+  const handleApplyBackup = (mode: 'replace' | 'merge') => {
+    if (!pendingBackup) return;
+    try {
+      const r = applyBackup(pendingBackup, mode);
+      setPendingBackup(null);
+      onBackupRestored?.();
+      setImportMessage({
+        ok: true,
+        text: mode === 'replace'
+          ? `Restored everything from the backup (${r.shiftsAdded} shifts).`
+          : `Merged ${r.shiftsAdded} shift${r.shiftsAdded === 1 ? '' : 's'} (${r.duplicates} duplicate${r.duplicates === 1 ? '' : 's'} skipped).`,
+      });
+    } catch (err) {
+      setImportMessage({ ok: false, text: err instanceof Error ? err.message : String(err) });
     }
   };
 
@@ -392,6 +436,77 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               </div>
               <FileUp className="w-5 h-5 text-slate-400 group-hover:text-violet-600 transition-colors shrink-0" />
               <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" data-testid="import-input" onClick={e => e.stopPropagation()} onChange={handleImportFile} />
+            </div>
+          )}
+
+          {/* Option 6: Full JSON backup (everything except home location and push subscription) */}
+          <div
+            onClick={handleExportBackup}
+            className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 flex items-center justify-between gap-3 cursor-pointer transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-950 text-teal-700 dark:text-teal-400 flex items-center justify-center shrink-0">
+                <FileJson className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-teal-700 dark:group-hover:text-teal-400 transition-colors">
+                  Export Backup (JSON)
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Full backup: shifts, shift in progress, expenses, goals, settings and reminders. Home location stays on this phone.
+                </p>
+              </div>
+            </div>
+            <FileDown className="w-5 h-5 text-slate-400 group-hover:text-teal-600 transition-colors shrink-0" />
+          </div>
+
+          {/* Option 7: Restore from JSON backup (validated first, then Replace or Merge) */}
+          {onBackupRestored && (
+            <div
+              onClick={() => backupInputRef.current?.click()}
+              className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 flex items-center justify-between gap-3 cursor-pointer transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <ArchiveRestore className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
+                    Restore Backup (JSON)
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Load a gig-backup file. It's checked first; then choose Replace everything or Merge shifts.
+                  </p>
+                </div>
+              </div>
+              <FileUp className="w-5 h-5 text-slate-400 group-hover:text-amber-600 transition-colors shrink-0" />
+              <input ref={backupInputRef} type="file" accept=".json,application/json" className="hidden" data-testid="restore-input" onClick={e => e.stopPropagation()} onChange={handleRestoreFile} />
+            </div>
+          )}
+
+          {/* Restore confirm: shown only after the file passed validation */}
+          {pendingBackup && (
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700/50 space-y-3" data-testid="restore-confirm">
+              <p className="text-xs text-amber-900 dark:text-amber-200">
+                Backup from <strong>{pendingBackup.exportedAt ? new Date(pendingBackup.exportedAt).toLocaleString() : 'unknown date'}</strong>:{' '}
+                {pendingBackup.data.history.length} shifts, {pendingBackup.data.expenses.length} expenses
+                {pendingBackup.data.activeSession ? ', a shift in progress' : ''}.
+              </p>
+              <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80">
+                Replace everything overwrites this device's shifts, expenses, settings, reminders and current shift (your home location is kept).
+                Merge shifts only adds shifts that aren't already here.
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <button onClick={() => setPendingBackup(null)} className="py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer">
+                  Cancel
+                </button>
+                <button onClick={() => handleApplyBackup('merge')} className="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer">
+                  Merge shifts
+                </button>
+                <button onClick={() => handleApplyBackup('replace')} className="py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold cursor-pointer">
+                  Replace everything
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -23,9 +23,14 @@ await p.evaluate(now => {
 await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(1200);
 const est = p.locator('text=/remaining at current work pace/');
 const estText = await est.textContent();
-const card = p.locator('section, div').filter({ has: p.locator('text=Shift Target Goal') }).last();
-await card.scrollIntoViewIfNeeded();
-await card.screenshot({ path: `${prefix}-goal-card.png` });
+// Whole goal card: nearest ancestor that contains both the title and the estimate
+await p.locator('text=Shift Target Goal').evaluate(el => el.scrollIntoView({ block: 'start' }));
+const box = await p.evaluate(() => {
+  const est = [...document.querySelectorAll('*')].find(e => e.children.length === 0 && /remaining at current work pace/.test(e.textContent));
+  let el = est; while (el && !/Shift Target Goal/.test(el.textContent)) el = el.parentElement;
+  const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: Math.min(r.height, 880) };
+});
+await p.screenshot({ path: `${prefix}-goal-card.png`, clip: box });
 await p.click('[aria-label="Settings"]');
 await p.evaluate(() => localStorage.setItem('gig_tracker_reminders_v1', JSON.stringify({ version: 1, remindersEnabled: true, leadMinutes: 15, reminders: [{ id: 'a', days: [1, 2, 3, 4, 5], time: '09:00' }], safetyEnabled: true, safetyEndTime: '22:00', homeEnabled: false, home: null })));
 await p.evaluate(() => window.dispatchEvent(new Event('gig-reminders-changed')));
