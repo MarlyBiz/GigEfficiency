@@ -16,11 +16,14 @@ import {
   AlertTriangle, 
   X, 
   Sparkles,
-  Gift
+  Gift,
+  Plus,
+  CalendarRange
 } from 'lucide-react';
 import { AppSettings, DayRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
 import { getBonusTypeMeta } from '../utils/bonuses';
+import { isDayRecord, periodLabel, recordKind } from '../utils/periodSummaries';
 
 interface HistoryViewProps {
   records: DayRecord[];
@@ -28,6 +31,10 @@ interface HistoryViewProps {
   onSelectRecord: (record: DayRecord) => void;
   onDeleteRecord: (id: string) => void;
   onClearAllData?: () => void;
+  /** Opens the day editor with an empty record (for days the timer wasn't used). */
+  onAddPastDay?: () => void;
+  /** Opens the month/year catch-up form. */
+  onCatchUp?: () => void;
 }
 
 export const HistoryView: React.FC<HistoryViewProps> = ({
@@ -36,6 +43,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
   onSelectRecord,
   onDeleteRecord,
   onClearAllData,
+  onAddPastDay,
+  onCatchUp,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [recordToDelete, setRecordToDelete] = useState<DayRecord | null>(null);
@@ -83,7 +92,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
             </span>
             <div className="flex flex-wrap items-center gap-2.5 mt-0.5">
               <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
-                Driving History ({records.length} shifts)
+                Driving History ({records.filter(isDayRecord).length} shifts)
               </h2>
               {totalHistoricalBonuses > 0 && (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 flex items-center gap-1 font-mono">
@@ -106,6 +115,22 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
           </div>
         </div>
 
+        {/* Add a day / catch up whole months or past years */}
+        {(onAddPastDay || onCatchUp) && (
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {onAddPastDay && (
+              <button onClick={onAddPastDay} className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer">
+                <Plus className="w-4 h-4" /> Add past day
+              </button>
+            )}
+            {onCatchUp && (
+              <button onClick={onCatchUp} className="py-2.5 px-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer">
+                <CalendarRange className="w-4 h-4" /> Catch up past months
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Shift List Cards */}
         {filteredRecords.length === 0 ? (
           <div className="py-16 text-center text-xs text-slate-400 space-y-2">
@@ -122,9 +147,20 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                 >
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white font-mono">
-                        {record.dateStr}
-                      </span>
+                      {isDayRecord(record) ? (
+                        <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white font-mono">
+                          {record.dateStr}
+                        </span>
+                      ) : (
+                        <>
+                          <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                            {periodLabel(recordKind(record) as 'month' | 'year', record.periodKey || record.dateStr.slice(0, 7))}
+                          </span>
+                          <span className="text-[11px] font-bold uppercase tracking-wide text-violet-800 dark:text-violet-300 bg-violet-100 dark:bg-violet-950/70 px-2 py-0.5 rounded-full border border-violet-300 dark:border-violet-800" data-testid="summary-badge">
+                            {recordKind(record) === 'month' ? 'Month summary' : 'Year summary'}
+                          </span>
+                        </>
+                      )}
                       <span className="text-xs font-mono font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
                         {formatCurrency(record.totalEarnings, settings.currency)}
                       </span>

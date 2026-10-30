@@ -172,8 +172,11 @@ export function loadHistory(): DayRecord[] {
       const totalBonusEarnings = bonusEarnings.reduce((s: number, b: any) => s + (b.amount || 0), 0);
       const totalEarnings = Number(r?.totalEarnings) || (baseEarnings + totalBonusEarnings);
 
+      // Catch-up summaries keep their kind + period; anything else is a normal day
+      const kind = r?.kind === 'month' || r?.kind === 'year' ? r.kind : undefined;
       return {
         id: r?.id ? String(r.id) : `shift-${Date.now()}-${rIdx}-${Math.random()}`,
+        ...(kind ? { kind, periodKey: String(r.periodKey || '') } : {}),
         dateStr: r?.dateStr || new Date().toISOString().slice(0, 10),
         startTime: Number(r?.startTime) || Date.now(),
         endTime: Number(r?.endTime) || Date.now(),

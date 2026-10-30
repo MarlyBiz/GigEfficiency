@@ -10,6 +10,7 @@ import { AppSettings, DayRecord, ExpenseRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
 import { getCategoryMeta } from '../utils/expenses';
 import { importShiftsCSV } from '../utils/csvImport';
+import { isDayRecord, recordKind } from '../utils/periodSummaries';
 import { GigBackup, applyBackup, downloadBackup, parseBackup } from '../utils/backup';
 
 interface ExportModalProps {
@@ -43,7 +44,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   // --- CSV Export ---
   const handleExportCSV = () => {
-    if (records.length === 0) return;
+    // Month/year catch-up summaries are not daily shifts: they're left out of the shifts CSV
+    // (they're kept in the JSON backup) so spreadsheets and the CSV importer see only days.
+    const dayRecords = records.filter(isDayRecord);
+    if (dayRecords.length === 0) return;
 
     const headers = [
       'Date',
@@ -63,7 +67,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       'Notes',
     ];
 
-    const rows = records.map(r => {
+    const rows = dayRecords.map(r => {
       const totalHrs = (r.totalSeconds / 3600).toFixed(2);
       const workHrs = (r.workSeconds / 3600).toFixed(2);
       const taxDeduction = (r.totalMiles * (settings.standardMileageRate || 0.67)).toFixed(2);
@@ -280,7 +284,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         y = 20;
       }
       const rTax = r.totalMiles * (settings.standardMileageRate || 0.67);
-      doc.text(r.dateStr, margin, y);
+      doc.text(isDayRecord(r) ? r.dateStr : `${r.periodKey} (${recordKind(r)} total)`, margin, y);
       doc.text(formatHM(r.workSeconds), 45, y);
       doc.text(formatHM(r.totalSeconds), 65, y);
       doc.text(formatCurrency(r.totalEarnings, settings.currency), 85, y);

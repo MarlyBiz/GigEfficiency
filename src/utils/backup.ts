@@ -22,6 +22,7 @@ import {
 } from './storage';
 import { loadReminderConfig } from './reminders';
 import { minuteKey, summaryKey } from './csvImport';
+import { recordKind } from './periodSummaries';
 
 export const BACKUP_APP = 'gig-efficiency';
 export const BACKUP_SCHEMA = 1;
@@ -184,11 +185,31 @@ export function applyBackup(backup: GigBackup, mode: 'replace' | 'merge'): Resto
     return { mode, shiftsAdded: d.history.length, duplicates: 0 };
   }
   const existing = loadHistory();
+  // Days: same rule as the CSV import. Month/year summaries: one per period, and a year can't
+  // have both a year summary and month summaries (the device's existing ones win).
+  const periodKeys = (r: DayRecord): string[] => {
+    const k = recordKind(r), p = String(r.periodKey || '');
+    return k === 'month' ? [`month:${p}`, `month-in-year:${p.slice(0, 4)}`] : [`year:${p}`];
+  };
   const keys = new Set<string>();
-  for (const r of existing) { keys.add(minuteKey(r.dateStr, r.startTime)); keys.add(summaryKey(r)); }
+  for (const r of existing) {
+    if (recordKind(r) === 'day') { keys.add(minuteKey(r.dateStr, r.startTime)); keys.add(summaryKey(r)); }
+    else periodKeys(r).forEach(k => keys.add(k));
+  }
   const toAdd: DayRecord[] = [];
   let duplicates = 0;
   for (const r of d.history) {
+    const kind = recordKind(r);
+    if (kind !== 'day') {
+      const p = String(r.periodKey || '');
+      const clash = kind === 'month'
+        ? keys.has(`month:${p}`) || keys.has(`year:${p.slice(0, 4)}`)
+        : keys.has(`year:${p}`) || keys.has(`month-in-year:${p}`);
+      if (clash) { duplicates++; continue; }
+      periodKeys(r).forEach(k => keys.add(k));
+      toAdd.push(r);
+      continue;
+    }
     const k1 = minuteKey(r.dateStr, r.startTime), k2 = summaryKey(r);
     if (keys.has(k1) || keys.has(k2)) { duplicates++; continue; }
     keys.add(k1); keys.add(k2);

@@ -38,6 +38,8 @@ import { SettingsModal } from './components/SettingsModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { EditDayModal } from './components/EditDayModal';
 import { ExportModal } from './components/ExportModal';
+import { SummaryEditorModal } from './components/SummaryEditorModal';
+import { emptyDayRecord, isDayRecord, isSummaryRecord, recordKind } from './utils/periodSummaries';
 import { BackHomePrompt } from './components/BackHomePrompt';
 import { useHomeGeofence } from './hooks/useHomeGeofence';
 import { useReminderConfig, syncPushSchedule, nextLocalTime, showLocalNotification } from './utils/reminders';
@@ -53,6 +55,7 @@ export default function App() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<DayRecord | null>(null);
+  const [editingIsNew, setEditingIsNew] = useState(false);
   const [clearedBannerMessage, setClearedBannerMessage] = useState<string | null>(null);
 
   // Live second ticker for real-time timer progression
@@ -236,29 +239,31 @@ export default function App() {
     setActiveTab('tracker');
   };
 
+  // New past day: empty record, no apps pre-chosen; the user picks apps and the date in the editor
   const handleAddNewForDate = (dateStr: string) => {
-    const dummyRecord: DayRecord = {
-      id: `manual-${dateStr}-${Date.now()}`,
-      dateStr,
-      startTime: new Date(`${dateStr}T16:00:00`).getTime(),
-      endTime: new Date(`${dateStr}T21:00:00`).getTime(),
-      totalSeconds: 5 * 3600,
-      workSeconds: 4 * 3600,
-      totalMiles: 75,
-      workMiles: 65,
-      platformEarnings: [
-        { id: 'uber', name: 'Uber Rides', amount: 95 },
-        { id: 'doordash', name: 'DoorDash', amount: 45 },
-      ],
-      totalEarnings: 140,
-      dollarsPerHourTotal: 28.0,
-      dollarsPerHourWork: 35.0,
-      dollarsPerMileTotal: 1.87,
-      dollarsPerMileWork: 2.15,
-      notes: '',
-      createdAt: Date.now(),
-    };
-    setEditingRecord(dummyRecord);
+    setEditingIsNew(true);
+    setEditingRecord(emptyDayRecord(dateStr));
+  };
+
+  // Today's local date (YYYY-MM-DD) as the starting date for "Add past day"
+  const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+  // Save from the day editor: updates an existing day or adds a new one
+  const handleUpsertRecord = (rec: DayRecord) => {
+    setRecords(addDayRecord(rec));
+  };
+
+  // Month/year catch-up summaries
+  const [summaryEditor, setSummaryEditor] = useState<{ record: DayRecord | null } | null>(null);
+  const handleSaveSummary = (rec: DayRecord, removeIds: string[]) => {
+    const rest = loadHistory().filter(r => r.id !== rec.id && !removeIds.includes(r.id));
+    const next = [rec, ...rest];
+    saveHistory(next);
+    setRecords(next);
+  };
+  const handleSelectHistoryRecord = (r: DayRecord) => {
+    if (isSummaryRecord(r)) setSummaryEditor({ record: r });
+    else { setEditingIsNew(false); setEditingRecord(r); }
   };
 
   const handleToggleDarkMode = () => {
@@ -314,9 +319,9 @@ export default function App() {
 
         {activeTab === 'week' && (
           <WeekDailyView
-            records={records}
+            records={records.filter(isDayRecord)}
             settings={settings}
-            onSelectRecord={r => setEditingRecord(r)}
+            onSelectRecord={r => { setEditingIsNew(false); setEditingRecord(r); }}
             onAddNewForDate={handleAddNewForDate}
             onUpdateSettings={setSettings}
           />
@@ -324,7 +329,7 @@ export default function App() {
 
         {activeTab === 'analytics' && (
           <AnalyticsCharts
-            records={records}
+            records={records.filter(r => recordKind(r) !== 'year')}
             settings={settings}
           />
         )}
@@ -342,9 +347,11 @@ export default function App() {
           <HistoryView
             records={records}
             settings={settings}
-            onSelectRecord={r => setEditingRecord(r)}
+            onSelectRecord={handleSelectHistoryRecord}
             onDeleteRecord={handleDeleteRecord}
             onClearAllData={handleClearAllData}
+            onAddPastDay={() => handleAddNewForDate(todayStr())}
+            onCatchUp={() => setSummaryEditor({ record: null })}
           />
         )}
 
@@ -377,13 +384,27 @@ export default function App() {
       />
 
       <EditDayModal
+        key={editingRecord?.id || 'no-record'}
         record={editingRecord}
         isOpen={!!editingRecord}
         onClose={() => setEditingRecord(null)}
-        onSave={handleUpdateRecord}
+        onSave={handleUpsertRecord}
         onDelete={handleDeleteRecord}
         settings={settings}
+        isNew={editingIsNew}
       />
+
+      {summaryEditor && (
+        <SummaryEditorModal
+          key={summaryEditor.record?.id || 'new-summary'}
+          record={summaryEditor.record}
+          records={records}
+          settings={settings}
+          onSave={handleSaveSummary}
+          onDelete={handleDeleteRecord}
+          onClose={() => setSummaryEditor(null)}
+        />
+      )}
 
       <ExportModal
         isOpen={isExportModalOpen}

@@ -19,9 +19,9 @@ const seeded = [
     bonusEarnings: [{ id: 'q', platform: 'Uber', bonusType: 'uber_quest', amount: 25, dateStr: '2026-10-28', notes: '3 trips', createdAt: 1 }],
     totalEarnings: 175, dollarsPerHourTotal: 23.33, dollarsPerHourWork: 29.17, dollarsPerMileTotal: 1.79, dollarsPerMileWork: 2.17, notes: '', createdAt: 1 },
 ];
-await p.goto(url);
+await p.goto(url, { waitUntil: 'networkidle' }); await p.waitForTimeout(2500); // let the SW controllerchange reload settle
 await p.evaluate(s => { localStorage.clear(); localStorage.setItem('gig_tracker_has_onboarded', 'true'); localStorage.setItem('gig_tracker_history_records', JSON.stringify(s)); }, seeded);
-await p.reload({ waitUntil: 'networkidle' });
+await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(1500);
 const openModal = () => p.click('[aria-label="Export Statements"]');
 await openModal();
 const [dl] = await Promise.all([p.waitForEvent('download'), p.click('text=Shifts CSV Spreadsheet Export')]);

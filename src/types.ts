@@ -63,8 +63,13 @@ export interface ActiveSession {
   notes: string;
 }
 
+/** 'day' = a real shift (default when missing); 'month' / 'year' = catch-up totals for a past period. */
+export type RecordKind = 'day' | 'month' | 'year';
+
 export interface DayRecord {
   id: string;
+  kind?: RecordKind;
+  periodKey?: string; // 'YYYY-MM' for month summaries, 'YYYY' for year summaries
   dateStr: string; // YYYY-MM-DD
   startTime: number;
   endTime: number;

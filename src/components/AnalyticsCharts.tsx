@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { AppSettings, DayRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
+import { isDayRecord, recordKind } from '../utils/periodSummaries';
 
 interface AnalyticsChartsProps {
   records: DayRecord[];
@@ -32,15 +33,17 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
   }, [records]);
 
   // Daily records data (last 14 active days)
+  // Month summaries count in totals and the monthly chart, never in daily/weekly views
+  const sortedDays = useMemo(() => sortedRecords.filter(isDayRecord), [sortedRecords]);
   const last14Days = useMemo(() => {
-    return sortedRecords.slice(-14);
-  }, [sortedRecords]);
+    return sortedDays.slice(-14);
+  }, [sortedDays]);
 
   // Aggregate weekly data (last 8 weeks)
   const weeklyData = useMemo(() => {
     const map = new Map<string, { label: string; earnings: number; workHours: number; miles: number; count: number }>();
     
-    sortedRecords.forEach(r => {
+    sortedDays.forEach(r => {
       if (!r || !r.dateStr) return;
       // Group by year-week
       const d = new Date(r.dateStr + 'T12:00:00');
@@ -64,7 +67,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
         avgPerMile: data.miles > 0 ? data.earnings / data.miles : 0,
       }))
       .slice(-8);
-  }, [sortedRecords]);
+  }, [sortedDays]);
 
   // Aggregate monthly data
   const monthlyData = useMemo(() => {
@@ -182,7 +185,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
               {formatCurrency(totalGrossEarnings, settings.currency)}
             </span>
             <span className="text-[11px] text-slate-500 mt-0.5 block">
-              {records.length} shifts recorded
+              {records.filter(isDayRecord).length} shifts recorded
             </span>
           </div>
 

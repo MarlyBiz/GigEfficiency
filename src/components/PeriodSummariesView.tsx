@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { AppSettings, DayRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
+import { isDayRecord, recordKind } from '../utils/periodSummaries';
 
 interface PeriodSummariesViewProps {
   records: DayRecord[];
@@ -57,7 +58,7 @@ export const PeriodSummariesView: React.FC<PeriodSummariesViewProps> = ({
 
       return {
         period: item.year,
-        shiftsCount: item.records.length,
+        shiftsCount: item.records.filter(isDayRecord).length,
         totalEarnings,
         workHours,
         totalHours,
@@ -75,6 +76,7 @@ export const PeriodSummariesView: React.FC<PeriodSummariesViewProps> = ({
     const map = new Map<string, { ym: string; records: DayRecord[] }>();
     (records || []).forEach(r => {
       if (!r || !r.dateStr) return;
+      if (recordKind(r) === 'year') return; // year summaries only count in yearly totals
       const ym = r.dateStr.slice(0, 7); // YYYY-MM
       if (!ym) return;
       const existing = map.get(ym) || { ym, records: [] };
@@ -101,7 +103,7 @@ export const PeriodSummariesView: React.FC<PeriodSummariesViewProps> = ({
       return {
         period: label,
         rawKey: item.ym,
-        shiftsCount: item.records.length,
+        shiftsCount: item.records.filter(isDayRecord).length,
         totalEarnings,
         workHours,
         totalHours,

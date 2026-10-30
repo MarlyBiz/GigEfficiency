@@ -10,6 +10,7 @@ import { formatCurrency, formatHM, parseHM } from '../utils/calculations';
 import { getBonusTypeMeta } from '../utils/bonuses';
 import { BonusEntryModal } from './BonusEntryModal';
 import { NumericInput } from './NumericInput';
+import { PlatformRowsEditor } from './PlatformRowsEditor';
 
 interface EditDayModalProps {
   record: DayRecord | null;
@@ -18,6 +19,8 @@ interface EditDayModalProps {
   onSave: (record: DayRecord) => void;
   onDelete: (id: string) => void;
   settings: AppSettings;
+  /** True when adding a past day that isn't saved yet (title + start time follow the chosen date). */
+  isNew?: boolean;
 }
 
 export const EditDayModal: React.FC<EditDayModalProps> = ({
@@ -27,6 +30,7 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
   onSave,
   onDelete,
   settings,
+  isNew = false,
 }) => {
   if (!isOpen || !record) return null;
 
@@ -41,11 +45,6 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
   const [isBonusModalOpen, setIsBonusModalOpen] = useState(false);
   const [editingBonus, setEditingBonus] = useState<BonusEntry | null>(null);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-
-  const handleUpdatePlatformAmount = (id: string, val: number | string) => {
-    const num = Math.max(0, typeof val === 'number' ? val : parseFloat(val) || 0);
-    setPlatforms(prev => prev.map(p => (p.id === id ? { ...p, amount: num } : p)));
-  };
 
   const handleSaveBonus = (savedBonus: BonusEntry) => {
     setBonuses(prev => {
@@ -76,9 +75,15 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
     const tMiles = parseFloat(totalMiles) || 0;
     const wMiles = parseFloat(workMiles) || 0;
 
+    // A new past day takes its start time from the chosen date (same time of day as the template)
+    const startTime = isNew
+      ? (() => { const d = new Date(record.startTime); const [y, m, dd] = dateStr.split('-').map(Number); d.setFullYear(y, m - 1, dd); return d.getTime(); })()
+      : record.startTime;
     const updated: DayRecord = {
       ...record,
       dateStr,
+      startTime,
+      endTime: isNew ? startTime + tSeconds * 1000 : record.endTime,
       totalSeconds: tSeconds,
       workSeconds: wSeconds,
       totalMiles: tMiles,
@@ -105,7 +110,7 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
         <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Edit Shift Record</h3>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">{isNew ? 'Add Past Day' : 'Edit Shift Record'}</h3>
           </div>
           <button
             onClick={onClose}
@@ -189,24 +194,12 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
                 Total: {formatCurrency(totalEarnings, settings.currency)}
               </span>
             </div>
-            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-              {platforms.map((p, pIdx) => (
-                <div key={p.id ? `${p.id}-${pIdx}` : `edit-plat-${p.name}-${pIdx}`} className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                  <span className="text-slate-700 dark:text-slate-300 font-medium">{p.name}</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-slate-500 font-mono">{settings.currency}</span>
-                    <NumericInput
-                      step="0.01"
-                      min={0}
-                      value={p.amount}
-                      onChange={val => handleUpdatePlatformAmount(p.id, val)}
-                      placeholder="0"
-                      className="w-24 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-xs text-right focus:outline-none focus:border-emerald-500"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <PlatformRowsEditor
+              rows={platforms}
+              onChange={setPlatforms}
+              options={settings.defaultPlatforms || []}
+              currency={settings.currency}
+            />
           </div>
 
           {/* Bonuses & Quests Section */}
@@ -306,6 +299,7 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
 
         {/* Buttons */}
         <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800">
+          {isNew ? <span /> : (
           <button
             type="button"
             onClick={() => setShowConfirmDelete(true)}
@@ -314,6 +308,7 @@ export const EditDayModal: React.FC<EditDayModalProps> = ({
           >
             <Trash2 className="w-4 h-4" />
           </button>
+          )}
 
           <div className="flex items-center gap-2">
             <button
