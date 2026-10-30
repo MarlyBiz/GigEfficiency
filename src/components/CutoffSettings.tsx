@@ -4,7 +4,9 @@
  */
 
 import React, { useState } from 'react';
+import { Plus, X } from 'lucide-react';
 import { AppSettings, CutoffRule } from '../types';
+import { addAppToSettings, removeAppFromSettings, suggestableApps } from '../utils/appList';
 import { normalizeCutoffs, ruleFor, minutesToTime, timeToMinutes, formatClock, WEEKDAYS } from '../utils/workday';
 
 const box = 'px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-xs';
@@ -60,6 +62,26 @@ export const CutoffSettings: React.FC<{ settings: AppSettings; onChange: (s: App
   const cutoffs = settings.cutoffs || normalizeCutoffs(settings);
   const apps = settings.defaultPlatforms || [];
   const [openApp, setOpenApp] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [choice, setChoice] = useState('');
+  const [custom, setCustom] = useState('');
+  const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  const [err, setErr] = useState('');
+  const suggestions = suggestableApps(settings);
+  const startAdd = () => { setAdding(true); setErr(''); setCustom(''); setChoice(suggestions[0] || '__custom__'); };
+  const doAdd = () => {
+    try {
+      onChange(addAppToSettings(settings, choice === '__custom__' ? custom : choice));
+      setAdding(false); setErr('');
+    } catch (e: any) { setErr(e.message); }
+  };
+  const doDelete = (name: string) => {
+    try {
+      onChange(removeAppFromSettings(settings, name));
+      if (openApp === name) setOpenApp(null);
+      setConfirmDel(null); setErr('');
+    } catch (e: any) { setErr(e.message); setConfirmDel(null); }
+  };
   const setDefault = (r: CutoffRule) => onChange({ ...settings, cutoffs: { ...cutoffs, default: r } });
   const setApp = (name: string, r: CutoffRule) => onChange({ ...settings, cutoffs: { ...cutoffs, apps: { ...cutoffs.apps, [name]: r } } });
   return (
@@ -76,15 +98,53 @@ export const CutoffSettings: React.FC<{ settings: AppSettings; onChange: (s: App
         {apps.map(name => {
           const r = ruleFor(settings, name);
           return (
-            <div key={name} className="rounded-xl border border-slate-200 dark:border-slate-800 p-2">
-              <button type="button" onClick={() => setOpenApp(openApp === name ? null : name)} className="w-full flex justify-between text-left cursor-pointer">
-                <span className="font-semibold text-slate-800 dark:text-slate-200">{name}</span>
-                <span className="text-slate-500">day {short(r.dayMinutes)} · week {WEEKDAYS[r.weekStartDay]} {short(r.weekStartMinutes)}</span>
-              </button>
+            <div key={name} className="rounded-xl border border-slate-200 dark:border-slate-800 p-2" data-testid="cutoff-app-row">
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => setOpenApp(openApp === name ? null : name)} className="flex-1 min-w-0 flex justify-between gap-2 text-left cursor-pointer">
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{name}</span>
+                  <span className="text-slate-500 shrink-0">day {short(r.dayMinutes)} · week {WEEKDAYS[r.weekStartDay]} {short(r.weekStartMinutes)}</span>
+                </button>
+                <button type="button" aria-label={`Remove ${name}`} onClick={() => { setErr(''); setConfirmDel(name); }}
+                  className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer shrink-0">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              {confirmDel === name && (
+                <div className="mt-2 p-2 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 space-y-1.5" data-testid="confirm-remove-app">
+                  <p className="text-[11px] text-rose-900 dark:text-rose-200">Remove {name} from your app list? Saved shifts and earnings for {name} stay in History.</p>
+                  <div className="flex justify-end gap-1.5">
+                    <button type="button" onClick={() => setConfirmDel(null)} className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-semibold cursor-pointer">Cancel</button>
+                    <button type="button" onClick={() => doDelete(name)} className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer">Remove</button>
+                  </div>
+                </div>
+              )}
               {openApp === name && <div className="mt-2"><RuleEditor label={name} rule={r} onChange={v => setApp(name, v)} testId={`cutoff-app-${name}`} /></div>}
             </div>
           );
         })}
+        {adding ? (
+          <div className="rounded-xl border border-emerald-300 dark:border-emerald-800 p-2 space-y-1.5" data-testid="add-app-form">
+            <div className="flex gap-1.5">
+              <select aria-label="App to add" className={`${box} flex-1 min-w-0`} value={choice} onChange={e => setChoice(e.target.value)}>
+                {suggestions.map(a => <option key={a} value={a}>{a}</option>)}
+                <option value="__custom__">Other (type a name)…</option>
+              </select>
+              <button type="button" onClick={doAdd} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer">Add</button>
+              <button type="button" onClick={() => { setAdding(false); setErr(''); }} aria-label="Cancel adding app" className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+            </div>
+            {choice === '__custom__' && (
+              <input aria-label="Custom app name" maxLength={40} placeholder="e.g. Roadie" className={`${box} w-full`} value={custom}
+                onChange={e => setCustom(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } }} />
+            )}
+            <p className="text-[11px] text-slate-500">New apps start with a midnight cutoff and weeks from Mon 12:00 AM (Uber apps: 4:00 AM). Also offered in Edit Shift.</p>
+          </div>
+        ) : (
+          <button type="button" onClick={startAdd}
+            className="w-full py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-emerald-700 dark:text-emerald-400 font-semibold flex items-center justify-center gap-1 cursor-pointer hover:bg-white dark:hover:bg-slate-900">
+            <Plus className="w-3.5 h-3.5" /> Add app
+          </button>
+        )}
+        {err && <p role="alert" className="text-[11px] text-rose-600 dark:text-rose-400">{err}</p>}
       </div>
     </div>
   );
