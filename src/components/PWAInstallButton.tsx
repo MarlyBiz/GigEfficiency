@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Download, 
   Smartphone, 
@@ -122,6 +123,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'c
         </div>
       )}
 
+      {/* Overlays go to <body>: the header's backdrop-blur would otherwise trap fixed elements */}
+      {typeof document !== 'undefined' && createPortal(<>
       {/* Short iOS / Safari sheet: Share, then Add to Home Screen (Add to Dock on Mac) */}
       {showShareSheet && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setShowShareSheet(false)}>
@@ -343,6 +346,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'c
           </div>
         </div>
       )}
+      </>, document.body)}
     </>
   );
 };

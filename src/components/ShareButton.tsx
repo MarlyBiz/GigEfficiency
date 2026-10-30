@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Share2 } from 'lucide-react';
 import { APP_URL, shareApp } from '../utils/share';
 
@@ -25,11 +26,12 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ variant = 'compact' })
     else if (r === 'failed') setToast(`Copy this link: ${APP_URL}`);
   };
 
-  const toastEl = toast && (
+  const toastEl = toast && createPortal(
     <div role="status" data-testid="share-toast"
       className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold shadow-lg">
       {toast}
-    </div>
+    </div>,
+    document.body
   );
 
   if (variant === 'settings') {
