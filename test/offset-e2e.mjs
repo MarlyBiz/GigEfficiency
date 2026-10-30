@@ -1,0 +1,33 @@
+// 412 px: Adjust Timers pop-up shows the pending change on every tap, the saved offset and the new time.
+// Usage: node test/offset-e2e.mjs <url> <shot-prefix>
+import { chromium } from '/tmp/pw/node_modules/playwright-core/index.mjs';
+const [url, prefix] = process.argv.slice(2);
+const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome' });
+const p = await (await b.newContext({ viewport: { width: 412, height: 900 }, timezoneId: 'America/New_York' })).newPage();
+const errs = [], out = {};
+p.on('pageerror', e => errs.push(e.message));
+await p.goto(url, { waitUntil: 'networkidle' }); await p.waitForTimeout(3000);
+await p.evaluate(() => { localStorage.clear(); localStorage.setItem('gig_tracker_has_onboarded', 'true'); localStorage.setItem('gig_tracker_samples_seeded', 'true'); });
+await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(2500);
+await p.click('button:has-text("Start Day")'); await p.waitForTimeout(200); await p.click('button:has-text("Start Work")');
+await p.click('button:has-text("Time Offsets")');
+const pend = id => p.textContent(`[data-testid="${id}-pending"]`);
+const work = '[data-testid="work-offset"]';
+const tap = (row, label) => p.locator('div.space-y-2\\.5', { has: p.locator(`[data-testid="${row}"]`) }).locator(`button:text-is("${label}")`).click();
+out.start = await pend('work-offset');
+await tap('work-offset', '+5m'); out.after5 = await pend('work-offset');
+await p.screenshot({ path: `${prefix}-offset-pending.png` });
+await tap('work-offset', '+30m'); await tap('work-offset', '+30m'); out.after65 = await pend('work-offset');
+out.total = await pend('total-offset');
+await p.click('button:text-is("Done")');
+await p.click('button:has-text("Time Offsets")');
+out.reopenPending = await pend('work-offset');
+await tap('work-offset', '-15m');
+out.reopenAfterMinus = await pend('work-offset');
+out.info = await p.textContent(work);
+await p.locator('h3:has-text("Adjust Timers")').scrollIntoViewIfNeeded();
+await p.screenshot({ path: `${prefix}-offset-saved.png` });
+out.stored = await p.evaluate(() => JSON.parse(localStorage.getItem('gig_tracker_active_session')).manualWorkAdjustmentSeconds / 60);
+out.errs = errs;
+console.log(JSON.stringify(out, null, 1));
+await b.close();

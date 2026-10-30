@@ -880,6 +880,8 @@ export const ActiveShiftTracker: React.FC<ActiveShiftTrackerProps> = ({
         onClose={() => setIsManualTimeModalOpen(false)}
         session={session}
         onUpdateSession={onUpdateSession}
+        workSeconds={workSeconds}
+        totalSeconds={totalSeconds}
       />
 
       <BonusEntryModal

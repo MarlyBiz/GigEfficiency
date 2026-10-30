@@ -3,16 +3,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { X, Clock, Plus, Minus, RotateCcw } from 'lucide-react';
 import { ActiveSession } from '../types';
 import { NumericInput } from './NumericInput';
+import { formatHM } from '../utils/calculations';
+
+/** +5m, −10m, +1h 05m */
+export function formatOffset(seconds: number): string {
+  const mins = Math.round(seconds / 60);
+  const a = Math.abs(mins);
+  const body = a >= 60 ? `${Math.floor(a / 60)}h ${String(a % 60).padStart(2, '0')}m` : `${a}m`;
+  return `${mins < 0 ? '\u2212' : '+'}${body}`;
+}
 
 interface ManualTimeModalProps {
   isOpen: boolean;
   onClose: () => void;
   session: ActiveSession;
   onUpdateSession: (updater: (prev: ActiveSession) => ActiveSession) => void;
+  /** Live clock values (already include the offsets) for the preview */
+  workSeconds?: number;
+  totalSeconds?: number;
 }
 
 export const ManualTimeModal: React.FC<ManualTimeModalProps> = ({
@@ -20,8 +32,29 @@ export const ManualTimeModal: React.FC<ManualTimeModalProps> = ({
   onClose,
   session,
   onUpdateSession,
+  workSeconds,
+  totalSeconds,
 }) => {
-  if (!isOpen) return null;
+  // Offsets saved before this pop-up opened, so the pending change can be shown on every tap
+  const [opened, setOpened] = useState<{ work: number; total: number } | null>(null);
+  if (isOpen && !opened) setOpened({ work: session.manualWorkAdjustmentSeconds || 0, total: session.manualAdjustmentSeconds || 0 });
+  if (!isOpen && opened) setOpened(null);
+  if (!isOpen || !opened) return null;
+
+  const workNow = session.manualWorkAdjustmentSeconds || 0;
+  const totalNow = session.manualAdjustmentSeconds || 0;
+  const offsetInfo = (now: number, before: number, clock: number | undefined, testId: string) => (
+    <div className="flex items-end justify-between gap-2" data-testid={testId}>
+      <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+        {before !== 0 && <span className="block">Current offset {formatOffset(before)}</span>}
+        {clock !== undefined && <span className="block">New time: <strong className="font-mono text-slate-700 dark:text-slate-200">{formatHM(clock)}</strong></span>}
+        {now !== before && before !== 0 && <span className="block">Offset after Done: {formatOffset(now)}</span>}
+      </div>
+      <span className={`font-mono font-extrabold text-lg ${now - before === 0 ? 'text-slate-400' : now - before > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`} data-testid={`${testId}-pending`}>
+        {formatOffset(now - before)}
+      </span>
+    </div>
+  );
 
   const currentWorkMins = Math.round((session.manualWorkAdjustmentSeconds || 0) / 60);
   const currentTotalMins = Math.round((session.manualAdjustmentSeconds || 0) / 60);
@@ -89,11 +122,8 @@ export const ManualTimeModal: React.FC<ManualTimeModalProps> = ({
               <span className="font-bold text-emerald-700 dark:text-emerald-400">
                 Work Time Offset
               </span>
-              <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                {(session.manualWorkAdjustmentSeconds || 0) >= 0 ? '+' : ''}
-                {Math.round((session.manualWorkAdjustmentSeconds || 0) / 60)} min
-              </span>
             </div>
+            {offsetInfo(workNow, opened.work, workSeconds, 'work-offset')}
 
             <div className="flex items-center justify-between gap-2">
               {[-30, -15, -5, 5, 15, 30].map(mins => (
@@ -118,11 +148,8 @@ export const ManualTimeModal: React.FC<ManualTimeModalProps> = ({
               <span className="font-bold text-blue-700 dark:text-blue-400">
                 Total Shift Time Offset
               </span>
-              <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                {(session.manualAdjustmentSeconds || 0) >= 0 ? '+' : ''}
-                {Math.round((session.manualAdjustmentSeconds || 0) / 60)} min
-              </span>
             </div>
+            {offsetInfo(totalNow, opened.total, totalSeconds, 'total-offset')}
 
             <div className="flex items-center justify-between gap-2">
               {[-30, -15, -5, 5, 15, 30].map(mins => (
