@@ -69,7 +69,7 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
   });
 
   // Filter records within the 7 days of this week
-  const weekRecords = viewRecords.filter(r => weekInfo.days.includes(r.dateStr));
+  const weekRecords = viewRecords.filter((r, i, a) => weekInfo.days.includes(r.dateStr) && a.findIndex(x => x.id === r.id) === i);
   const weekEarnings = weekRecords.reduce((sum, r) => sum + r.totalEarnings, 0);
   const weekBonuses = weekRecords.reduce((sum, r) => sum + (r.totalBonusEarnings || 0), 0);
   const weekTotalSeconds = weekRecords.reduce((sum, r) => sum + r.totalSeconds, 0);
@@ -119,7 +119,8 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
     const [y, m, d] = dStr.split('-').map(Number);
     const dayDate = new Date(y, m - 1, d, 12, 0, 0);
     const dayName = dayNames[dayDate.getDay()];
-    const dayRecords = viewRecords.filter(r => r.dateStr === dStr);
+    // Same record never counted twice (dedupe by id)
+    const dayRecords = viewRecords.filter((r, i, a) => r.dateStr === dStr && a.findIndex(x => x.id === r.id) === i);
     // Older versions could leave two records on one day: show their combined total
     const dayRecord = dayRecords.length > 1 ? dayRecords.slice(1).reduce(mergeDayRecords, dayRecords[0]) : dayRecords[0] || null;
     const firstRecord = dayRecords[0] ? records.find(r => r.id === dayRecords[0].id) || null : null;

@@ -43,7 +43,7 @@ import { SummaryEditorModal } from './components/SummaryEditorModal';
 import { emptyDayRecord, isDayRecord, isSummaryRecord, recordKind } from './utils/periodSummaries';
 import { BackHomePrompt } from './components/BackHomePrompt';
 import { ConfirmDayModal, DayConfirmRequest } from './components/ConfirmDayModal';
-import { applyDaySave, applyRestore, makeSnapshot, sameDayRecords, saveUndoSnapshot, SaveMode, UndoSnapshot } from './utils/dayStore';
+import { applyDaySave, applyRestore, findDuplicateDays, makeSnapshot, sameDayRecords, saveUndoSnapshot, SaveMode, UndoSnapshot } from './utils/dayStore';
 import { getWorkday, ruleFor } from './utils/workday';
 import { useHomeGeofence } from './hooks/useHomeGeofence';
 import { useReminderConfig, syncPushSchedule, nextLocalTime, showLocalNotification } from './utils/reminders';
@@ -91,6 +91,37 @@ export default function App() {
   useEffect(() => {
     saveActiveSession(session);
   }, [session]);
+
+  // Another open copy of the app (PWA + browser tab, or a window left in the background) must not
+  // keep working from an old copy of the shift: re-read history and the live shift from storage when
+  // another tab writes them, and whenever this one comes back to the foreground.
+  useEffect(() => {
+    const resync = () => {
+      setRecords(loadHistory());
+      setSession(loadActiveSession(loadSettings()));
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === 'gig_tracker_history_records' || e.key === 'gig_tracker_active_session') resync();
+    };
+    const onVisible = () => { if (document.visibilityState === 'visible') resync(); };
+    window.addEventListener('storage', onStorage);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+
+  // On load: collapse exact duplicate copies of a day (identical earnings, times and miles),
+  // keeping an undo copy first. Differing records are never touched.
+  useEffect(() => {
+    const { next, removed } = findDuplicateDays(loadHistory());
+    if (removed.length) {
+      saveUndoSnapshot(makeSnapshot(removed[0].dateStr, `Removed duplicate copy${removed.length > 1 ? ` (${removed.length})` : ''}`, removed, []));
+      saveHistory(next);
+      setRecords(next);
+    }
+  }, []);
 
   // On initial mount: check onboarding state
   useEffect(() => {
@@ -170,6 +201,7 @@ export default function App() {
   // Every day change goes through here: merge by default, snapshot what was there before.
   const commitDay = (record: DayRecord, mode: SaveMode = 'merge') => {
     const { next, snapshot } = applyDaySave(loadHistory(), record, mode);
+    if (!snapshot) { setRecords(next); return; } // this exact save was already applied
     saveUndoSnapshot(snapshot);
     saveHistory(next);
     setRecords(next);

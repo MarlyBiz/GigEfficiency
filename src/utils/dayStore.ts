@@ -53,6 +53,7 @@ export function mergeDayRecords(existing: DayRecord, add: DayRecord): DayRecord 
   const notes = [existing.notes, add.notes].map(n => (n || '').trim()).filter(Boolean);
   return withRates({
     ...existing,
+    mergedFrom: [...new Set([...(existing.mergedFrom || []), add.id, ...(add.mergedFrom || [])])],
     startTime: Math.min(existing.startTime, add.startTime),
     endTime: Math.max(existing.endTime, add.endTime),
     totalSeconds: (existing.totalSeconds || 0) + (add.totalSeconds || 0),
@@ -76,7 +77,12 @@ export type SaveMode = 'merge' | 'replace';
  * - edit of an existing record with no other data on its date: update in place
  * - date already has other data: merge into it ('merge') or replace it ('replace')
  */
-export function applyDaySave(history: DayRecord[], record: DayRecord, mode: SaveMode = 'merge'): { next: DayRecord[]; snapshot: UndoSnapshot } {
+export function applyDaySave(history: DayRecord[], record: DayRecord, mode: SaveMode = 'merge'): { next: DayRecord[]; snapshot: UndoSnapshot | null } {
+  // The same save arriving twice (double tap, two open tabs, a re-sent End Day) must not add the
+  // shift again: if this record was already folded into a day, it's a no-op.
+  if (!history.some(r => r.id === record.id) && history.some(r => (r.mergedFrom || []).includes(record.id))) {
+    return { next: history, snapshot: null };
+  }
   const prevSelf = history.find(r => r.id === record.id);
   const others = sameDayRecords(history, record.dateStr, record.id);
   let next: DayRecord[];
@@ -133,4 +139,34 @@ export function loadUndo(): UndoSnapshot[] {
 export function saveUndoSnapshot(s: UndoSnapshot) {
   try { localStorage.setItem(UNDO_KEY, JSON.stringify(pushSnapshot(loadUndo(), s))); } catch (e) { console.error('Undo save failed', e); }
   if (typeof window !== 'undefined') window.dispatchEvent(new Event('gig-undo-changed'));
+}
+
+/** Fields that make two day records the same shift: date, earnings (per app + bonuses), times, miles. */
+export function daySignature(r: DayRecord): string {
+  const apps = (r.platformEarnings || []).filter(p => Number(p.amount)).map(p => `${p.name}=${round2(Number(p.amount))}`).sort();
+  const bonus = round2((r.bonusEarnings || []).reduce((s, b) => s + (Number(b.amount) || 0), 0));
+  return JSON.stringify([r.dateStr, round2(r.totalEarnings), apps, bonus, Math.round(r.totalSeconds), Math.round(r.workSeconds), round2(r.totalMiles), round2(r.workMiles)]);
+}
+
+/**
+ * Pure on-load repair: drop exact copies (same id twice, or two day records on the same workday
+ * with identical earnings, times and miles). Records that differ in anything are never touched,
+ * and nothing is created. Returns the removed copies so an undo snapshot can be kept first.
+ */
+export function findDuplicateDays(history: DayRecord[]): { next: DayRecord[]; removed: DayRecord[] } {
+  const seenIds = new Set<string>();
+  const seenSig = new Map<string, DayRecord>();
+  const next: DayRecord[] = [];
+  const removed: DayRecord[] = [];
+  for (const r of history) {
+    if (seenIds.has(r.id)) { removed.push(r); continue; }
+    seenIds.add(r.id);
+    if (isDayRecord(r)) {
+      const sig = daySignature(r);
+      if (seenSig.has(sig)) { removed.push(r); continue; }
+      seenSig.set(sig, r);
+    }
+    next.push(r);
+  }
+  return { next, removed };
 }

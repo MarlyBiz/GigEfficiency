@@ -20,6 +20,9 @@ import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/c
 import { isDayRecord, recordKind } from '../utils/periodSummaries';
 import { monthKeyForRecord } from '../utils/workday';
 
+/** '2026-10-29' -> '10/29' */
+const shortMD = (ds: string) => { const [, m, d] = ds.split('-'); return `${Number(m)}/${Number(d)}`; };
+
 interface AnalyticsChartsProps {
   records: DayRecord[];
   settings: AppSettings;
@@ -253,23 +256,23 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
                 No shift data logged yet. Complete your first day to populate charts.
               </div>
             ) : (
-              <div className="pt-6 pb-2 overflow-x-auto">
-                <div className="h-64 min-w-[500px] flex items-end gap-2 sm:gap-3 px-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+              <div className="pt-6 pb-2">
+                <div className="h-64 w-full flex items-end gap-0.5 sm:gap-3 px-2 border-b border-slate-200 dark:border-slate-800 pb-2">
                   {last14Days.map((d, dIdx) => {
                     const heightPercent = Math.min(100, Math.max(10, (d.totalEarnings / maxDailyEarnings) * 100));
                     return (
-                      <div key={d.id ? `${d.id}-${dIdx}` : `daily-${d.dateStr}-${dIdx}`} className="flex-1 flex flex-col items-center gap-2 group">
-                        <span className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      <div key={d.id ? `${d.id}-${dIdx}` : `daily-${d.dateStr}-${dIdx}`} className="flex-1 min-w-0 flex flex-col items-center gap-2 group">
+                        <span className="hidden sm:block text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                           {formatCurrency(d.totalEarnings, settings.currency)}
                         </span>
-                        <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-t-xl h-48 flex items-end p-1">
+                        <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-t-md sm:rounded-t-xl h-48 flex items-end p-px sm:p-1">
                           <div
-                            className="w-full rounded-lg bg-gradient-to-t from-emerald-600 to-teal-400 group-hover:brightness-110 transition-all shadow-sm"
+                            className="w-full rounded-sm sm:rounded-lg bg-gradient-to-t from-emerald-600 to-teal-400 group-hover:brightness-110 transition-all shadow-sm"
                             style={{ height: `${heightPercent}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-mono text-slate-500 truncate max-w-[45px]">
-                          {d.dateStr.slice(5)}
+                        <span className={`text-[9px] sm:text-[10px] font-mono text-slate-500 whitespace-nowrap ${dIdx % 2 === 1 && last14Days.length > 7 ? 'invisible sm:visible' : ''}`}>
+                          {shortMD(d.dateStr)}
                         </span>
                       </div>
                     );
@@ -302,8 +305,8 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
                 No shift data available.
               </div>
             ) : (
-              <div className="pt-6 pb-2 overflow-x-auto">
-                <div className="h-64 min-w-[500px] flex items-end gap-2 sm:gap-3 px-2 border-b border-slate-200 dark:border-slate-800 pb-2 relative">
+              <div className="pt-6 pb-2">
+                <div className="h-64 w-full flex items-end gap-0.5 sm:gap-3 px-2 border-b border-slate-200 dark:border-slate-800 pb-2 relative">
                   {/* Benchmark horizontal reference line */}
                   <div
                     className="absolute inset-x-0 border-b-2 border-dashed border-emerald-400/60 z-10 pointer-events-none"
@@ -320,13 +323,13 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
                     const heightPercent = Math.min(100, Math.max(10, (d.dollarsPerHourWork / maxHourlyRate) * 100));
                     const isAboveGoal = d.dollarsPerHourWork >= (settings.goals?.hourlyRate || 25);
                     return (
-                      <div key={d.id ? `${d.id}-${dIdx}` : `hourly-${d.dateStr}-${dIdx}`} className="flex-1 flex flex-col items-center gap-2 group z-20">
-                        <span className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      <div key={d.id ? `${d.id}-${dIdx}` : `hourly-${d.dateStr}-${dIdx}`} className="flex-1 min-w-0 flex flex-col items-center gap-2 group z-20">
+                        <span className="hidden sm:block text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                           {formatRate(d.dollarsPerHourWork, settings.currency, 'hr')}
                         </span>
-                        <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-t-xl h-48 flex items-end p-1">
+                        <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-t-md sm:rounded-t-xl h-48 flex items-end p-px sm:p-1">
                           <div
-                            className={`w-full rounded-lg transition-all shadow-sm ${
+                            className={`w-full rounded-sm sm:rounded-lg transition-all shadow-sm ${
                               isAboveGoal
                                 ? 'bg-gradient-to-t from-emerald-600 to-teal-400'
                                 : 'bg-gradient-to-t from-blue-600 to-cyan-400'
@@ -334,8 +337,8 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
                             style={{ height: `${heightPercent}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-mono text-slate-500 truncate max-w-[45px]">
-                          {d.dateStr.slice(5)}
+                        <span className={`text-[9px] sm:text-[10px] font-mono text-slate-500 whitespace-nowrap ${dIdx % 2 === 1 && last14Days.length > 7 ? 'invisible sm:visible' : ''}`}>
+                          {shortMD(d.dateStr)}
                         </span>
                       </div>
                     );
@@ -368,25 +371,25 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
                 Log multiple weeks of shifts to view week-over-week comparisons.
               </div>
             ) : (
-              <div className="pt-6 pb-2 overflow-x-auto">
-                <div className="h-64 min-w-[500px] flex items-end gap-3 sm:gap-4 px-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+              <div className="pt-6 pb-2">
+                <div className="h-64 w-full flex items-end gap-1 sm:gap-4 px-2 border-b border-slate-200 dark:border-slate-800 pb-2">
                   {weeklyData.map((w, wIdx) => {
                     const heightPercent = Math.min(100, Math.max(10, (w.earnings / maxWeeklyEarnings) * 100));
                     return (
-                      <div key={w.key ? `${w.key}-${wIdx}` : `week-${wIdx}`} className="flex-1 flex flex-col items-center gap-2 group">
-                        <div className="text-[10px] text-center font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div key={w.key ? `${w.key}-${wIdx}` : `week-${wIdx}`} className="flex-1 min-w-0 flex flex-col items-center gap-2 group">
+                        <div className="hidden sm:block text-[10px] text-center font-mono opacity-0 group-hover:opacity-100 transition-opacity">
                           <span className="font-bold text-emerald-700 dark:text-emerald-400 block">
                             {formatCurrency(w.earnings, settings.currency)}
                           </span>
                           <span className="text-slate-500">{formatRate(w.avgPerHour, settings.currency, 'hr')}</span>
                         </div>
-                        <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-t-xl h-48 flex items-end p-1.5">
+                        <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-t-md sm:rounded-t-xl h-48 flex items-end p-px sm:p-1.5">
                           <div
-                            className="w-full rounded-lg bg-gradient-to-t from-purple-600 to-indigo-400 group-hover:brightness-110 transition-all shadow-sm"
+                            className="w-full rounded-sm sm:rounded-lg bg-gradient-to-t from-purple-600 to-indigo-400 group-hover:brightness-110 transition-all shadow-sm"
                             style={{ height: `${heightPercent}%` }}
                           />
                         </div>
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        <span className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-full">
                           {w.label}
                         </span>
                       </div>
@@ -420,25 +423,25 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
                 Log multiple months of shifts to view seasonal trends.
               </div>
             ) : (
-              <div className="pt-6 pb-2 overflow-x-auto">
-                <div className="h-64 min-w-[500px] flex items-end gap-4 sm:gap-6 px-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+              <div className="pt-6 pb-2">
+                <div className="h-64 w-full flex items-end gap-1 sm:gap-6 px-2 border-b border-slate-200 dark:border-slate-800 pb-2">
                   {monthlyData.map((m, mIdx) => {
                     const heightPercent = Math.min(100, Math.max(10, (m.earnings / maxMonthlyEarnings) * 100));
                     return (
-                      <div key={m.key ? `${m.key}-${mIdx}` : `month-${mIdx}`} className="flex-1 flex flex-col items-center gap-2 group">
-                        <div className="text-[10px] text-center font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div key={m.key ? `${m.key}-${mIdx}` : `month-${mIdx}`} className="flex-1 min-w-0 flex flex-col items-center gap-2 group">
+                        <div className="hidden sm:block text-[10px] text-center font-mono opacity-0 group-hover:opacity-100 transition-opacity">
                           <span className="font-bold text-emerald-700 dark:text-emerald-400 block">
                             {formatCurrency(m.earnings, settings.currency)}
                           </span>
                           <span className="text-slate-500">{formatRate(m.avgPerHour, settings.currency, 'hr')}</span>
                         </div>
-                        <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-t-xl h-48 flex items-end p-2">
+                        <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-t-md sm:rounded-t-xl h-48 flex items-end p-px sm:p-2">
                           <div
-                            className="w-full rounded-lg bg-gradient-to-t from-teal-600 to-emerald-400 group-hover:brightness-110 transition-all shadow-sm"
+                            className="w-full rounded-sm sm:rounded-lg bg-gradient-to-t from-teal-600 to-emerald-400 group-hover:brightness-110 transition-all shadow-sm"
                             style={{ height: `${heightPercent}%` }}
                           />
                         </div>
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        <span className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 truncate max-w-full">
                           {m.label}
                         </span>
                       </div>

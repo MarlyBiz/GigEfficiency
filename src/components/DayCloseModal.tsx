@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, CheckCircle2, DollarSign, Clock, Navigation, TrendingUp, Sparkles, Fuel, Gift } from 'lucide-react';
 import { ActiveSession, AppSettings, DayRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, getEffectiveDateString, formatHM } from '../utils/calculations';
@@ -42,6 +42,8 @@ export const DayCloseModal: React.FC<DayCloseModalProps> = ({
   onConfirmSave,
 }) => {
   const [notes, setNotes] = useState(session.notes || '');
+  const savedRef = useRef(false); // a double tap must not save the shift twice
+  useEffect(() => { if (isOpen) savedRef.current = false; }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -61,8 +63,11 @@ export const DayCloseModal: React.FC<DayCloseModalProps> = ({
   );
 
   const handleSave = () => {
+    if (savedRef.current) return;
+    savedRef.current = true;
     const record: DayRecord = {
-      id: `shift-${dateStr}-${Date.now()}`,
+      // One id per shift (its start time), so the same shift saved twice is recognised, not added again
+      id: `shift-${dateStr}-${session.startDayTimestamp || Date.now()}`,
       dateStr,
       startTime,
       endTime: now,

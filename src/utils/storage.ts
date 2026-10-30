@@ -205,6 +205,7 @@ export function loadHistory(): DayRecord[] {
         dollarsPerMileWork: Number(r?.dollarsPerMileWork) || 0,
         notes: r?.notes || '',
         createdAt: Number(r?.createdAt) || Date.now(),
+        ...(Array.isArray(r?.mergedFrom) ? { mergedFrom: r.mergedFrom.map(String) } : {}),
       };
     });
   } catch {

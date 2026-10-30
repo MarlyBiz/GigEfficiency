@@ -74,6 +74,8 @@ export interface DayRecord {
   id: string;
   kind?: RecordKind;
   periodKey?: string; // 'YYYY-MM' for month summaries, 'YYYY' for year summaries
+  /** Ids of saves already folded into this day (makes a repeated save of the same shift a no-op). */
+  mergedFrom?: string[];
   dateStr: string; // YYYY-MM-DD
   startTime: number;
   endTime: number;
