@@ -63,6 +63,8 @@ export interface ActiveSession {
   notes: string;
   /** Cash tips this shift (not tied to an app). */
   cashTips?: number;
+  /** Day-only shift target set during the shift (Settings default untouched). amount null = back to default. */
+  dayGoal?: { workday: string; amount: number | null };
   /** Workday this session belongs to (set at start). */
   workdayStr?: string;
   /** 'replace' only after the user confirmed Start over; otherwise saves merge into the day. */
@@ -92,6 +94,8 @@ export interface DayRecord {
   totalEarnings: number;
   /** Cash tips for the day (not tied to an app); included in totalEarnings. Missing = 0. */
   cashTips?: number;
+  /** This day's own earnings goal (set during the shift). Missing = Settings default. */
+  dayGoalOverride?: number | null;
   dollarsPerHourTotal: number;
   dollarsPerHourWork: number;
   dollarsPerMileTotal: number;

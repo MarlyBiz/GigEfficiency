@@ -185,6 +185,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </label>
                   <NumericInput
                     min={0}
+                    step="any"
                     value={tempSettings.goals.dailyEarnings}
                     onChange={val =>
                       setTempSettings({

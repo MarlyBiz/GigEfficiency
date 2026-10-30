@@ -27,7 +27,7 @@ import {
 import { ActiveSession, AppSettings, DayRecord, PlatformSlot, BonusEntry } from '../types';
 import { formatCurrency, formatDuration, formatRate, getEffectiveDateString, formatHM } from '../utils/calculations';
 import { getWorkday, ruleFor, workdayEnd, prettyDate, formatClock } from '../utils/workday';
-import { sameDayRecords } from '../utils/dayStore';
+import { sameDayRecords, effectiveDayGoal } from '../utils/dayStore';
 import type { DayConfirmRequest } from './ConfirmDayModal';
 import { getBonusTypeMeta } from '../utils/bonuses';
 import { GoalTrackerCard } from './GoalTrackerCard';
@@ -118,6 +118,7 @@ export const ActiveShiftTracker: React.FC<ActiveShiftTrackerProps> = ({
   const currentWorkday = session.workdayStr && session.startDayTimestamp ? session.workdayStr : getWorkday(nowTs, rule);
   const workdayEndsAt = workdayEnd(currentWorkday, rule);
   const earlierToday = sameDayRecords(records, currentWorkday);
+  const dayGoalInfo = effectiveDayGoal(session, records, currentWorkday, settings.goals?.dailyEarnings || 150);
 
   const beginDay = (saveMode: 'merge' | 'replace') => {
     const now = Date.now();
@@ -528,6 +529,9 @@ export const ActiveShiftTracker: React.FC<ActiveShiftTrackerProps> = ({
         totalSeconds={totalSeconds}
         settings={settings}
         onUpdateSettings={onUpdateSettings}
+        dayGoal={dayGoalInfo.goal}
+        isDayGoal={dayGoalInfo.isOverride}
+        onSetDayGoal={amount => onUpdateSession(prev => ({ ...prev, dayGoal: { workday: currentWorkday, amount } }))}
       />
 
       {/* 4. DUAL TIMERS PANEL */}

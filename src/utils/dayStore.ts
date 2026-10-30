@@ -68,7 +68,27 @@ export function mergeDayRecords(existing: DayRecord, add: DayRecord): DayRecord 
     platformEarnings: apps,
     bonusEarnings: bonuses,
     notes: [...new Set(notes)].join(' | '),
+    // The later save's day goal wins when it set one (null = reset to default); otherwise keep the day's.
+    dayGoalOverride: add.dayGoalOverride !== undefined ? add.dayGoalOverride : existing.dayGoalOverride,
   });
+}
+
+/** Day-only goal from the session, if it belongs to this workday. undefined = not set this session. */
+export function sessionDayGoal(s: { dayGoal?: { workday: string; amount: number | null } }, workday: string): number | null | undefined {
+  return s.dayGoal && s.dayGoal.workday === workday ? s.dayGoal.amount : undefined;
+}
+
+/** The shift target for a workday: this session's day goal, else a saved record's, else the Settings default. */
+export function effectiveDayGoal(
+  s: { dayGoal?: { workday: string; amount: number | null } },
+  records: DayRecord[], workday: string, defaultGoal: number,
+): { goal: number; isOverride: boolean } {
+  let o = sessionDayGoal(s, workday);
+  if (o === undefined) {
+    const rec = records.find(r => isDayRecord(r) && r.dateStr === workday && r.dayGoalOverride !== undefined);
+    o = rec ? rec.dayGoalOverride : undefined;
+  }
+  return o != null && o > 0 ? { goal: o, isOverride: true } : { goal: defaultGoal, isOverride: false };
 }
 
 /** Other real day records already on this record's date. */

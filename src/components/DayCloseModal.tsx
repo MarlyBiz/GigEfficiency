@@ -9,6 +9,7 @@ import { ActiveSession, AppSettings, DayRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, getEffectiveDateString, formatHM } from '../utils/calculations';
 import { getBonusTypeMeta } from '../utils/bonuses';
 import { getWorkday, ruleFor } from '../utils/workday';
+import { sessionDayGoal } from '../utils/dayStore';
 
 interface DayCloseModalProps {
   isOpen: boolean;
@@ -77,6 +78,7 @@ export const DayCloseModal: React.FC<DayCloseModalProps> = ({
       workMiles: session.workMiles || 0,
       platformEarnings: session.platformEarnings || [],
       cashTips: Math.max(0, Number(session.cashTips) || 0),
+      ...(sessionDayGoal(session, dateStr) !== undefined ? { dayGoalOverride: sessionDayGoal(session, dateStr) } : {}),
       bonusEarnings: session.bonusEarnings || [],
       baseEarnings,
       totalBonusEarnings,

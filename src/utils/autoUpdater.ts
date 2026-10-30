@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const CURRENT_BUILD_VERSION = '2.6.9';
+export const CURRENT_BUILD_VERSION = '2.6.10';
 
 /**
  * Initializes automatic version checking and service worker updates.

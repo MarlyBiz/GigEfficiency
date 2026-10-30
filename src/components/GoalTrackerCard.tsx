@@ -15,6 +15,10 @@ interface GoalTrackerCardProps {
   totalSeconds: number;
   settings: AppSettings;
   onUpdateSettings?: React.Dispatch<React.SetStateAction<AppSettings>>;
+  /** This workday's target when set during the shift (Settings default stays as is). */
+  dayGoal?: number;
+  isDayGoal?: boolean;
+  onSetDayGoal?: (amount: number | null) => void;
 }
 
 export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
@@ -23,6 +27,9 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
   totalSeconds,
   settings,
   onUpdateSettings,
+  dayGoal,
+  isDayGoal = false,
+  onSetDayGoal,
 }) => {
   const [activeTab, setActiveTab] = useState<'earnings' | 'rate'>(
     settings.goals?.activeTrackerGoal || 'earnings'
@@ -30,7 +37,8 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
   const [isEditingGoal, setIsEditingGoal] = useState(false);
   const [tempGoalValue, setTempGoalValue] = useState<string>('');
 
-  const dailyGoal = settings.goals?.dailyEarnings || 150;
+  const defaultDailyGoal = settings.goals?.dailyEarnings || 150;
+  const dailyGoal = dayGoal && dayGoal > 0 ? dayGoal : defaultDailyGoal;
   const hourlyRateGoal = settings.goals?.hourlyRate || 25;
 
   const workHours = workSeconds / 3600;
@@ -54,13 +62,7 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
 
   const handleGoalAdjustment = (delta: number) => {
     if (!onUpdateSettings) return;
-    if (activeTab === 'earnings') {
-      const next = Math.max(10, dailyGoal + delta);
-      onUpdateSettings(prev => ({
-        ...prev,
-        goals: { ...prev.goals, dailyEarnings: next },
-      }));
-    } else {
+    if (activeTab === 'rate') {
       const next = Math.max(5, hourlyRateGoal + delta);
       onUpdateSettings(prev => ({
         ...prev,
@@ -71,13 +73,11 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
 
   const handleSaveCustomGoal = () => {
     const parsed = parseFloat(tempGoalValue);
-    if (!isNaN(parsed) && parsed > 0 && onUpdateSettings) {
+    if (!isNaN(parsed) && parsed > 0) {
       if (activeTab === 'earnings') {
-        onUpdateSettings(prev => ({
-          ...prev,
-          goals: { ...prev.goals, dailyEarnings: Math.round(parsed) },
-        }));
-      } else {
+        // Day-only: sets this workday's goal; Settings default is not touched
+        onSetDayGoal?.(Number(parsed.toFixed(2)));
+      } else if (onUpdateSettings) {
         onUpdateSettings(prev => ({
           ...prev,
           goals: { ...prev.goals, hourlyRate: Number(parsed.toFixed(2)) },
@@ -179,6 +179,8 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
                     <span className="text-xs font-mono font-bold pl-2 text-slate-600 dark:text-slate-400">{settings.currency}</span>
                     <NumericInput
                       min={0}
+                      step="any"
+                      aria-label="Goal for today"
                       value={tempGoalValue}
                       onChange={val => setTempGoalValue(String(val))}
                       placeholder={String(dailyGoal)}
@@ -195,26 +197,13 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
                 ) : (
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => handleGoalAdjustment(-10)}
-                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold font-mono transition-colors"
-                      title="Decrease goal by $10"
-                    >
-                      -10
-                    </button>
-                    <button
-                      onClick={() => handleGoalAdjustment(10)}
-                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold font-mono transition-colors"
-                      title="Increase goal by $10"
-                    >
-                      +10
-                    </button>
-                    <button
+                      aria-label="Edit today's goal"
                       onClick={() => {
                         setTempGoalValue(String(dailyGoal));
                         setIsEditingGoal(true);
                       }}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                      title="Edit custom goal amount"
+                      title="Set a goal for today only"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
@@ -223,6 +212,16 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
               </div>
             </div>
           </div>
+
+          {isDayGoal && (
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400" data-testid="day-goal-note">
+              <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-semibold">Today only</span>
+              <span>Default {formatCurrency(defaultDailyGoal, settings.currency)}</span>
+              <button onClick={() => { onSetDayGoal?.(null); setIsEditingGoal(false); }} className="underline hover:text-slate-800 dark:hover:text-white" data-testid="reset-day-goal">
+                Reset to default
+              </button>
+            </div>
+          )}
 
           {/* Progress Bar Track: Noticeably darker slate-200/90 in light mode so it never blends into the light gray background */}
           <div className="relative w-full h-4 bg-slate-200/90 dark:bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-300 dark:border-slate-800 shadow-inner">

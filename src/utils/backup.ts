@@ -192,12 +192,13 @@ export function applyBackup(backup: GigBackup, mode: 'replace' | 'merge'): Resto
     return k === 'month' ? [`month:${p}`, `month-in-year:${p.slice(0, 4)}`] : [`year:${p}`];
   };
   const keys = new Set<string>();
+  const byMinute = new Map<string, DayRecord>();
   for (const r of existing) {
-    if (recordKind(r) === 'day') { keys.add(minuteKey(r.dateStr, r.startTime)); keys.add(summaryKey(r)); }
+    if (recordKind(r) === 'day') { keys.add(minuteKey(r.dateStr, r.startTime)); keys.add(summaryKey(r)); byMinute.set(minuteKey(r.dateStr, r.startTime), r); }
     else periodKeys(r).forEach(k => keys.add(k));
   }
   const toAdd: DayRecord[] = [];
-  let duplicates = 0;
+  let duplicates = 0, goalsCarried = 0;
   for (const r of d.history) {
     const kind = recordKind(r);
     if (kind !== 'day') {
@@ -211,11 +212,16 @@ export function applyBackup(backup: GigBackup, mode: 'replace' | 'merge'): Resto
       continue;
     }
     const k1 = minuteKey(r.dateStr, r.startTime), k2 = summaryKey(r);
-    if (keys.has(k1) || keys.has(k2)) { duplicates++; continue; }
+    if (keys.has(k1) || keys.has(k2)) {
+      duplicates++;
+      const mine = byMinute.get(k1); // same day already here: keep its data, but take the backup's day goal if it has none
+      if (mine && mine.dayGoalOverride === undefined && Number(r.dayGoalOverride) > 0) { mine.dayGoalOverride = Number(r.dayGoalOverride); goalsCarried++; }
+      continue;
+    }
     keys.add(k1); keys.add(k2);
     toAdd.push(r);
   }
-  if (toAdd.length) {
+  if (toAdd.length || goalsCarried) {
     const merged = [...toAdd.sort((a, b) => b.startTime - a.startTime), ...existing];
     writeAllOrNothing([[STORAGE_KEYS.HISTORY, JSON.stringify(merged)]]);
   }
