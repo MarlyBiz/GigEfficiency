@@ -38,7 +38,8 @@ export const STORAGE_KEYS = {
   ACTIVE_SESSION: 'gig_tracker_active_session',
   HISTORY: 'gig_tracker_history_records',
   SETTINGS: 'gig_tracker_settings',
-  ONBOARDED: 'gig_tracker_has_onboarded',
+  ONBOARDED: 'gig_tracker_has_onboarded', // welcome seen & dismissed for good (finished or "Don't show again")
+  SAMPLES_SEEDED: 'gig_tracker_samples_seeded',
   EXPENSES: 'gig_tracker_expenses',
 };
 
@@ -225,6 +226,15 @@ export function loadHasOnboarded(): boolean {
 
 export function setHasOnboarded(value: boolean): void {
   localStorage.setItem(STORAGE_KEYS.ONBOARDED, String(value));
+}
+
+/** Sample data is only ever seeded once, even if the welcome keeps showing on later launches. */
+export function loadSamplesSeeded(): boolean {
+  return localStorage.getItem(STORAGE_KEYS.SAMPLES_SEEDED) === 'true';
+}
+
+export function setSamplesSeeded(): void {
+  localStorage.setItem(STORAGE_KEYS.SAMPLES_SEEDED, 'true');
 }
 
 export function addDayRecord(record: DayRecord): DayRecord[] {

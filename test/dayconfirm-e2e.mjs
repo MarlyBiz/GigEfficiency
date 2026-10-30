@@ -60,7 +60,7 @@ assert.match(await p.textContent('[data-testid="workday-ends"]'), /Friday, Oct 3
 // Settings: version, cutoffs (expand Uber + weekday overrides), undo list
 await p.click('[aria-label="Settings"]').catch(async () => p.click('button:has(svg.lucide-settings)'));
 await p.waitForSelector('[data-testid="cutoff-settings"]');
-assert.equal(await p.textContent('[data-testid="app-version"]'), 'v2.6.4');
+assert.equal(await p.textContent('[data-testid="app-version"]'), 'v' + JSON.parse(await (await p.request.get(new URL('/version.json', p.url()).href)).text()).version);
 await p.click('[data-testid="cutoff-settings"] >> text=Uber Rides');
 await p.locator('[data-testid="cutoff-app-Uber Rides"] >> text=Different cutoff on some days').click();
 await p.fill('[aria-label="Uber Rides Fri cutoff"]', '05:00');

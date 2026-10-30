@@ -19,6 +19,7 @@ import {
 import { AppSettings } from '../types';
 import { ClearDataModal } from './ClearDataModal';
 import { PWAInstallButton } from './PWAInstallButton';
+import { ShareButton } from './ShareButton';
 import { NumericInput } from './NumericInput';
 import { RemindersSettings } from './RemindersSettings';
 import { CutoffSettings } from './CutoffSettings';
@@ -36,6 +37,7 @@ interface SettingsModalProps {
   onClearAllData: () => void;
   recordsCount: number;
   onRestoreUndo: (snap: UndoSnapshot) => void;
+  onShowWelcome?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -47,6 +49,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClearAllData,
   recordsCount,
   onRestoreUndo,
+  onShowWelcome,
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'goals' | 'danger'>('general');
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
@@ -153,8 +156,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               {/* Install App Section */}
-              <div className="pt-1">
+              <div className="pt-1 space-y-2">
                 <PWAInstallButton variant="settings" />
+                <ShareButton variant="settings" />
+                {onShowWelcome && (
+                  <button type="button" onClick={onShowWelcome}
+                    className="w-full py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-900 cursor-pointer">
+                    Show welcome again
+                  </button>
+                )}
               </div>
               {/* Reminders & Home (saves instantly, independent of Save Settings) */}
               <RemindersSettings />

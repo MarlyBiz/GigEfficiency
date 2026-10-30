@@ -14,6 +14,8 @@ import {
   saveSettings,
   loadHasOnboarded,
   setHasOnboarded,
+  loadSamplesSeeded,
+  setSamplesSeeded,
   generateSampleData,
   deleteDayRecord,
   createInitialSession,
@@ -34,6 +36,7 @@ import { HistoryView } from './components/HistoryView';
 import { ExpensesView } from './components/ExpensesView';
 import { SettingsModal } from './components/SettingsModal';
 import { OnboardingModal } from './components/OnboardingModal';
+import { WelcomeModal } from './components/WelcomeModal';
 import { EditDayModal } from './components/EditDayModal';
 import { ExportModal } from './components/ExportModal';
 import { SummaryEditorModal } from './components/SummaryEditorModal';
@@ -54,6 +57,7 @@ export default function App() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<DayRecord | null>(null);
   const [editingIsNew, setEditingIsNew] = useState(false);
@@ -92,7 +96,11 @@ export default function App() {
   useEffect(() => {
     const hasOnboarded = loadHasOnboarded();
     if (!hasOnboarded) {
-      setIsOnboardingOpen(true);
+      // Welcome shows on every launch until it's finished or "Don't show again" is ticked
+      setIsWelcomeOpen(true);
+    }
+    if (!hasOnboarded && !loadSamplesSeeded()) {
+      setSamplesSeeded();
       if (records.length === 0) {
         const sampleRecords = generateSampleData(settings);
         setRecords(sampleRecords);
@@ -103,7 +111,6 @@ export default function App() {
         setExpenses(sampleExpenses);
         saveExpenses(sampleExpenses);
       }
-      setHasOnboarded(true);
     }
   }, []);
 
@@ -401,6 +408,19 @@ export default function App() {
         onClearAllData={handleClearAllData}
         recordsCount={records.length}
         onRestoreUndo={handleRestoreUndo}
+        onShowWelcome={() => {
+          setHasOnboarded(false);
+          setIsSettingsOpen(false);
+          setIsWelcomeOpen(true);
+        }}
+      />
+
+      <WelcomeModal
+        isOpen={isWelcomeOpen}
+        onClose={dontShowAgain => {
+          setHasOnboarded(dontShowAgain);
+          setIsWelcomeOpen(false);
+        }}
       />
 
       <OnboardingModal

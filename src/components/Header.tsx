@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { ShiftState } from '../types';
 import { PWAInstallButton } from './PWAInstallButton';
+import { ShareButton } from './ShareButton';
 
 interface HeaderProps {
   activeTab: 'tracker' | 'week' | 'analytics' | 'history' | 'periods' | 'expenses';
@@ -165,8 +166,9 @@ export const Header: React.FC<HeaderProps> = ({
           </nav>
 
           {/* Action Tools */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <PWAInstallButton variant="compact" />
+            <ShareButton variant="compact" />
 
             {/* Help / Guide */}
             <button
