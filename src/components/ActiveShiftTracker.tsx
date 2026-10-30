@@ -25,7 +25,10 @@ import {
   Gift
 } from 'lucide-react';
 import { ActiveSession, AppSettings, DayRecord, PlatformSlot, BonusEntry } from '../types';
-import { formatCurrency, formatDuration, formatRate, getEffectiveDateString } from '../utils/calculations';
+import { formatCurrency, formatDuration, formatRate, getEffectiveDateString, formatHM } from '../utils/calculations';
+import { getWorkday, ruleFor, workdayEnd, prettyDate, formatClock } from '../utils/workday';
+import { sameDayRecords } from '../utils/dayStore';
+import type { DayConfirmRequest } from './ConfirmDayModal';
 import { getBonusTypeMeta } from '../utils/bonuses';
 import { GoalTrackerCard } from './GoalTrackerCard';
 import { DayCloseModal } from './DayCloseModal';
@@ -34,6 +37,8 @@ import { BonusEntryModal } from './BonusEntryModal';
 import { NumericInput } from './NumericInput';
 
 interface ActiveShiftTrackerProps {
+  records: DayRecord[];
+  onAskDay: (req: DayConfirmRequest) => void;
   session: ActiveSession;
   totalSeconds: number;
   workSeconds: number;
@@ -49,6 +54,8 @@ interface ActiveShiftTrackerProps {
 }
 
 export const ActiveShiftTracker: React.FC<ActiveShiftTrackerProps> = ({
+  records,
+  onAskDay,
   session,
   totalSeconds,
   workSeconds,
@@ -104,10 +111,19 @@ export const ActiveShiftTracker: React.FC<ActiveShiftTrackerProps> = ({
     (session.totalMiles || 0) * (settings.standardMileageRate || 0.67);
 
   // --- Session Control Actions ---
-  const handleStartDay = () => {
+  // The workday always follows the cutoff (Thursday stays the workday until Friday 4:00 AM).
+  const rule = ruleFor(settings);
+  const nowTs = Date.now();
+  const currentWorkday = session.workdayStr && session.startDayTimestamp ? session.workdayStr : getWorkday(nowTs, rule);
+  const workdayEndsAt = workdayEnd(currentWorkday, rule);
+  const earlierToday = sameDayRecords(records, currentWorkday);
+
+  const beginDay = (saveMode: 'merge' | 'replace') => {
     const now = Date.now();
     onUpdateSession(prev => ({
       ...prev,
+      workdayStr: getWorkday(now, rule),
+      saveMode,
       status: 'commuting',
       startDayTimestamp: now,
       startWorkTimestamp: null,
@@ -117,16 +133,27 @@ export const ActiveShiftTracker: React.FC<ActiveShiftTrackerProps> = ({
     }));
   };
 
+  // Starting on a day that already has data asks first; Continue merges, never replaces.
+  const handleStartDay = () => {
+    const day = getWorkday(Date.now(), rule);
+    const existing = sameDayRecords(records, day);
+    if (existing.length) {
+      onAskDay({ dateStr: day, existing, onContinue: () => beginDay('merge'), onStartOver: () => beginDay('replace') });
+    } else beginDay('merge');
+  };
+
   const handleStartWork = () => {
     const now = Date.now();
     onUpdateSession(prev => {
       // If not started yet, also start day
       const startDay = prev.startDayTimestamp || now;
+      const workdayStr = prev.startDayTimestamp && prev.workdayStr ? prev.workdayStr : getWorkday(startDay, rule);
       const currentWork = prev.workSegments || [];
       return {
         ...prev,
         status: 'working',
         startDayTimestamp: startDay,
+        workdayStr,
         workSegments: [...currentWork, { startTime: now }],
       };
     });
@@ -315,6 +342,16 @@ export const ActiveShiftTracker: React.FC<ActiveShiftTrackerProps> = ({
             <span>Time Offsets</span>
           </button>
         </div>
+
+        {/* Current workday + when it ends (follows the cutoff) */}
+        <p className="mt-3 text-xs font-semibold text-slate-600 dark:text-slate-400" data-testid="workday-ends">
+          Workday {prettyDate(currentWorkday)} · ends {workdayEndsAt.toLocaleDateString('en-US', { weekday: 'short' })} {formatClock(workdayEndsAt.getHours() * 60 + workdayEndsAt.getMinutes()).replace(' (midnight)', '')}
+          {earlierToday.length > 0 && (
+            <span className="block text-emerald-700 dark:text-emerald-400">
+              Already saved today: {formatHM(earlierToday.reduce((s, r) => s + r.totalSeconds, 0))}, {formatCurrency(earlierToday.reduce((s, r) => s + r.totalEarnings, 0), settings.currency)}{session.startDayTimestamp ? (session.saveMode === 'replace' ? ' (will be replaced on save)' : ' (this shift adds to it)') : ''}
+            </span>
+          )}
+        </p>
 
         {/* Dynamic Big Tap Action Buttons based on status */}
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

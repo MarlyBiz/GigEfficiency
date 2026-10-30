@@ -182,11 +182,11 @@ export const SummaryEditorModal: React.FC<Props> = ({ record, records, settings,
           </div>
           <div>
             <label className={label}>Total Miles</label>
-            <input type="text" inputMode="decimal" aria-label="Total Miles" placeholder="0" value={totalMiles} onChange={e => setTotalMiles(e.target.value)} className={input} />
+            <NumericInput aria-label="Total Miles" placeholder="0" value={totalMiles} onChange={(_v, raw) => setTotalMiles(raw)} className={input} />
           </div>
           <div>
             <label className={label}>Work Miles</label>
-            <input type="text" inputMode="decimal" aria-label="Work Miles" placeholder="0" value={workMiles} onChange={e => setWorkMiles(e.target.value)} className={input} />
+            <NumericInput aria-label="Work Miles" placeholder="0" value={workMiles} onChange={(_v, raw) => setWorkMiles(raw)} className={input} />
           </div>
         </div>
 

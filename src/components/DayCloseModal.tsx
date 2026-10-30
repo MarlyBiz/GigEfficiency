@@ -8,6 +8,7 @@ import { X, CheckCircle2, DollarSign, Clock, Navigation, TrendingUp, Sparkles, F
 import { ActiveSession, AppSettings, DayRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, getEffectiveDateString, formatHM } from '../utils/calculations';
 import { getBonusTypeMeta } from '../utils/bonuses';
+import { getWorkday, ruleFor } from '../utils/workday';
 
 interface DayCloseModalProps {
   isOpen: boolean;
@@ -46,7 +47,8 @@ export const DayCloseModal: React.FC<DayCloseModalProps> = ({
 
   const now = Date.now();
   const startTime = session.startDayTimestamp || now - totalSeconds * 1000;
-  const dateStr = getEffectiveDateString(startTime, settings.dayCutoffHour);
+  // Workday chosen at start (follows the cutoff), never the calendar date of 'now'
+  const dateStr = session.workdayStr || getWorkday(startTime, ruleFor(settings));
   const estTaxDeduction = (session.totalMiles || 0) * (settings.standardMileageRate || 0.67);
 
   const baseEarnings = (session.platformEarnings || []).reduce(

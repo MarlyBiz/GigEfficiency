@@ -5,6 +5,7 @@
 
 import { ActiveSession, AppGoals, AppSettings, DayRecord, ExpenseRecord } from '../types';
 import { getEffectiveDateString } from './calculations';
+import { normalizeCutoffs } from './workday';
 
 export const DEFAULT_GOALS: AppGoals = {
   dailyEarnings: 150,
@@ -24,7 +25,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   standardMileageRate: 0.67, // 2024 IRS standard rate
   darkMode: false, // Default to light mode (user requested light gray background)
   goals: DEFAULT_GOALS,
+  cutoffs: normalizeCutoffs({ dayCutoffHour: 4, weekStartDay: 1 }),
 };
+
+/** Keep the legacy hour/week fields in step with the default cutoff rule. */
+export function withCutoffs(s: AppSettings): AppSettings {
+  const cutoffs = normalizeCutoffs(s);
+  return { ...s, cutoffs, dayCutoffHour: Math.floor(cutoffs.default.dayMinutes / 60), weekStartDay: cutoffs.default.weekStartDay };
+}
 
 export const STORAGE_KEYS = {
   ACTIVE_SESSION: 'gig_tracker_active_session',
@@ -40,9 +48,10 @@ export function loadSettings(): AppSettings {
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return DEFAULT_SETTINGS;
-    return {
+    return withCutoffs({
       ...DEFAULT_SETTINGS,
       ...parsed,
+      cutoffs: parsed.cutoffs,
       defaultPlatforms: Array.isArray(parsed.defaultPlatforms) && parsed.defaultPlatforms.length > 0
         ? parsed.defaultPlatforms
         : DEFAULT_SETTINGS.defaultPlatforms,
@@ -50,7 +59,7 @@ export function loadSettings(): AppSettings {
         ...DEFAULT_GOALS,
         ...(parsed.goals || {}),
       },
-    };
+    });
   } catch {
     return DEFAULT_SETTINGS;
   }

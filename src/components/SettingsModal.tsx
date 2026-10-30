@@ -21,6 +21,11 @@ import { ClearDataModal } from './ClearDataModal';
 import { PWAInstallButton } from './PWAInstallButton';
 import { NumericInput } from './NumericInput';
 import { RemindersSettings } from './RemindersSettings';
+import { CutoffSettings } from './CutoffSettings';
+import { UndoHistory } from './UndoHistory';
+import { withCutoffs } from '../utils/storage';
+import { CURRENT_BUILD_VERSION } from '../utils/autoUpdater';
+import type { UndoSnapshot } from '../utils/dayStore';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -30,6 +35,7 @@ interface SettingsModalProps {
   onLoadSampleData: () => void;
   onClearAllData: () => void;
   recordsCount: number;
+  onRestoreUndo: (snap: UndoSnapshot) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -40,15 +46,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onLoadSampleData,
   onClearAllData,
   recordsCount,
+  onRestoreUndo,
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'goals' | 'danger'>('general');
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [tempSettings, setTempSettings] = useState<AppSettings>(settings);
+  // Re-sync the draft each time Settings opens so it never saves stale values
+  React.useEffect(() => { if (isOpen) setTempSettings(settings); }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    onUpdateSettings(tempSettings);
+    onUpdateSettings(withCutoffs(tempSettings));
     onClose();
   };
 
@@ -64,7 +73,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">Settings & Benchmarks</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Customize period cutoffs, currency, and goals</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Customize period cutoffs, currency, and goals · <span data-testid="app-version">v{CURRENT_BUILD_VERSION}</span></p>
               </div>
             </div>
             <button
@@ -112,60 +121,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* TAB 1: GENERAL */}
           {activeTab === 'general' && (
             <div className="space-y-4 text-xs">
-              {/* Day Cutoff Hour */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1">
-                <label className="font-bold text-slate-800 dark:text-slate-200 block">
-                  Day Cutoff Time (Uber/Lyft Standard)
-                </label>
-                <p className="text-slate-500 dark:text-slate-400 text-[11px]">
-                  Commonly set to 4:00 AM so a late-night shift (e.g. 10 PM - 3 AM) counts towards one single day.
-                </p>
-                <select
-                  value={tempSettings.dayCutoffHour}
-                  onChange={e => setTempSettings({ ...tempSettings, dayCutoffHour: parseInt(e.target.value, 10) })}
-                  className="w-full mt-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
-                >
-                  <option value={0}>Midnight (12:00 AM)</option>
-                  <option value={3}>3:00 AM</option>
-                  <option value={4}>4:00 AM (Recommended)</option>
-                  <option value={5}>5:00 AM</option>
-                  <option value={6}>6:00 AM</option>
-                </select>
-              </div>
-
-              {/* Week Start Day */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1">
-                <label className="font-bold text-slate-800 dark:text-slate-200 block">
-                  Week Start Day
-                </label>
-                <p className="text-slate-500 dark:text-slate-400 text-[11px]">
-                  Choose which day marks the start of each 7-day reporting cycle.
-                </p>
-                <div className="grid grid-cols-2 gap-2 mt-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setTempSettings({ ...tempSettings, weekStartDay: 1 })}
-                    className={`py-2 rounded-xl font-bold border transition-all cursor-pointer ${
-                      tempSettings.weekStartDay === 1
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
-                    }`}
-                  >
-                    Monday
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTempSettings({ ...tempSettings, weekStartDay: 0 })}
-                    className={`py-2 rounded-xl font-bold border transition-all cursor-pointer ${
-                      tempSettings.weekStartDay === 0
-                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
-                    }`}
-                  >
-                    Sunday
-                  </button>
-                </div>
-              </div>
+              <CutoffSettings settings={tempSettings} onChange={setTempSettings} />
 
               {/* Currency & Tax Rate */}
               <div className="grid grid-cols-2 gap-3">
@@ -310,6 +266,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* TAB 3: DANGER / DATA */}
           {activeTab === 'danger' && (
             <div className="space-y-4 text-xs">
+              <UndoHistory currency={settings.currency} onRestore={onRestoreUndo} />
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
                   <span className="font-bold text-slate-900 dark:text-white block">Preload Realistic Sample Shifts</span>

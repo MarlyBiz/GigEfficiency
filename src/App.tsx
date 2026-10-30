@@ -15,8 +15,6 @@ import {
   loadHasOnboarded,
   setHasOnboarded,
   generateSampleData,
-  addDayRecord,
-  updateDayRecord,
   deleteDayRecord,
   createInitialSession,
   loadExpenses,
@@ -41,6 +39,9 @@ import { ExportModal } from './components/ExportModal';
 import { SummaryEditorModal } from './components/SummaryEditorModal';
 import { emptyDayRecord, isDayRecord, isSummaryRecord, recordKind } from './utils/periodSummaries';
 import { BackHomePrompt } from './components/BackHomePrompt';
+import { ConfirmDayModal, DayConfirmRequest } from './components/ConfirmDayModal';
+import { applyDaySave, applyRestore, makeSnapshot, sameDayRecords, saveUndoSnapshot, SaveMode, UndoSnapshot } from './utils/dayStore';
+import { getWorkday, ruleFor } from './utils/workday';
 import { useHomeGeofence } from './hooks/useHomeGeofence';
 import { useReminderConfig, syncPushSchedule, nextLocalTime, showLocalNotification } from './utils/reminders';
 
@@ -159,9 +160,17 @@ export default function App() {
     setCloseRequest(n => n + 1);
   };
 
+  // Every day change goes through here: merge by default, snapshot what was there before.
+  const commitDay = (record: DayRecord, mode: SaveMode = 'merge') => {
+    const { next, snapshot } = applyDaySave(loadHistory(), record, mode);
+    saveUndoSnapshot(snapshot);
+    saveHistory(next);
+    setRecords(next);
+  };
+  const [dayConfirm, setDayConfirm] = useState<DayConfirmRequest | null>(null);
+
   const handleSaveDayRecord = (record: DayRecord) => {
-    const updatedRecords = addDayRecord(record);
-    setRecords(updatedRecords);
+    commitDay(record, session.saveMode === 'replace' ? 'replace' : 'merge');
     const nextSession = createInitialSession(settings);
     setSession(nextSession);
     saveActiveSession(nextSession);
@@ -169,8 +178,7 @@ export default function App() {
   };
 
   const handleUpdateRecord = (updatedRecord: DayRecord) => {
-    const next = updateDayRecord(updatedRecord);
-    setRecords(next);
+    commitDay(updatedRecord);
   };
 
   // Merge records imported from CSV (already de-duplicated) into history
@@ -191,6 +199,8 @@ export default function App() {
   };
 
   const handleDeleteRecord = (id: string) => {
+    const old = loadHistory().find(r => r.id === id);
+    if (old) saveUndoSnapshot(makeSnapshot(old.dateStr, 'Deleted', [old], []));
     const next = deleteDayRecord(id);
     setRecords(next);
   };
@@ -245,12 +255,24 @@ export default function App() {
     setEditingRecord(emptyDayRecord(dateStr));
   };
 
-  // Today's local date (YYYY-MM-DD) as the starting date for "Add past day"
-  const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  // Current workday (follows the day cutoff) as the starting date for "Add past day"
+  const todayStr = () => getWorkday(Date.now(), ruleFor(settings));
 
   // Save from the day editor: updates an existing day or adds a new one
+  // If the date already has other data, ask first (Continue = merge, Start over = replace).
   const handleUpsertRecord = (rec: DayRecord) => {
-    setRecords(addDayRecord(rec));
+    const others = sameDayRecords(loadHistory(), rec.dateStr, rec.id);
+    if (others.length) {
+      setDayConfirm({ dateStr: rec.dateStr, existing: others, onContinue: () => commitDay(rec, 'merge'), onStartOver: () => commitDay(rec, 'replace') });
+    } else commitDay(rec);
+  };
+
+  // Undo history: put a day back the way it was (the current state is snapshotted too)
+  const handleRestoreUndo = (snap: UndoSnapshot) => {
+    const { next, snapshot } = applyRestore(loadHistory(), snap);
+    saveUndoSnapshot(snapshot);
+    saveHistory(next);
+    setRecords(next);
   };
 
   // Month/year catch-up summaries
@@ -303,6 +325,8 @@ export default function App() {
       <main className="flex-1 pb-16">
         {activeTab === 'tracker' && (
           <ActiveShiftTracker
+            records={records}
+            onAskDay={setDayConfirm}
             session={session}
             totalSeconds={totalSeconds}
             workSeconds={workSeconds}
@@ -376,6 +400,7 @@ export default function App() {
         onLoadSampleData={handleLoadSampleData}
         onClearAllData={handleClearAllData}
         recordsCount={records.length}
+        onRestoreUndo={handleRestoreUndo}
       />
 
       <OnboardingModal
@@ -415,6 +440,8 @@ export default function App() {
         onImportRecords={handleImportRecords}
         onBackupRestored={handleBackupRestored}
       />
+
+      <ConfirmDayModal request={dayConfirm} currency={settings.currency} onClose={() => setDayConfirm(null)} />
 
       <BackHomePrompt isOpen={isBackHomeOpen} onStop={handleBackHomeStop} onKeepGoing={() => setIsBackHomeOpen(false)} />
     </div>

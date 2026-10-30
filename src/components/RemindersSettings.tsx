@@ -233,6 +233,18 @@ export const RemindersSettings: React.FC = () => {
         </p>
       </div>
 
+      {/* What leaves the device */}
+      <div className={card} data-testid="privacy-note">
+        <span className="font-bold text-slate-800 dark:text-slate-200 block">What leaves the device</span>
+        <ul className="list-disc pl-4 text-[11px] text-slate-600 dark:text-slate-400 space-y-0.5">
+          <li>Sent to the push server: your push subscription, time zone and the reminder schedule (days, times, minutes before, whether a shift is running and its end-reminder time).</li>
+          <li>Never leaves the phone: your home location and all shift, earnings, mileage and expense data.</li>
+        </ul>
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+          iPhone/iPad: iOS can limit alerts if the app hasn't been opened for several days, so open it now and then. "Done working?" only works while the app is open.
+        </p>
+      </div>
+
       {!pushSupported() && (
         <p className="text-[11px] text-amber-700 dark:text-amber-400">
           Push isn't available in this browser. On iPhone/iPad, install the app (Share → Add to Home Screen) and open it from the Home Screen.

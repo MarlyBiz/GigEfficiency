@@ -20,8 +20,10 @@ import {
   ArrowUpRight 
 } from 'lucide-react';
 import { AppSettings, DayRecord } from '../types';
-import { formatCurrency, formatDuration, formatRate, getWeekBoundaries, formatHM } from '../utils/calculations';
+import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
 import { NumericInput } from './NumericInput';
+import { getWeek, getWorkday, ruleFor, formatClock, WEEKDAYS } from '../utils/workday';
+import { mergeDayRecords, withRates } from '../utils/dayStore';
 
 interface WeekDailyViewProps {
   records: DayRecord[];
@@ -39,6 +41,14 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
   onUpdateSettings,
 }) => {
   const [weekOffset, setWeekOffset] = useState<number>(0);
+  // '' = all apps on the default boundaries; otherwise that app's own week/day cutoffs and earnings
+  const [weekApp, setWeekApp] = useState<string>('');
+  const rule = ruleFor(settings, weekApp || undefined);
+  const appNames = [...new Set([...(settings.defaultPlatforms || []), ...records.flatMap(r => (r.platformEarnings || []).map(p => p.name))])];
+  const viewRecords = weekApp
+    ? records.map(r => withRates({ ...r, platformEarnings: (r.platformEarnings || []).filter(p => p.name === weekApp), bonusEarnings: (r.bonusEarnings || []).filter(b => b.platform === weekApp) }))
+        .filter(r => r.totalEarnings > 0)
+    : records;
   const [isEditingGoal, setIsEditingGoal] = useState<boolean>(false);
   const [customGoalInput, setCustomGoalInput] = useState<string>('');
 
@@ -46,11 +56,7 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
   const targetDate = new Date();
   targetDate.setDate(targetDate.getDate() + weekOffset * 7);
 
-  const weekInfo = getWeekBoundaries(
-    targetDate,
-    settings.weekStartDay,
-    settings.dayCutoffHour
-  );
+  const weekInfo = getWeek(targetDate.getTime(), rule);
 
   const weekStartStr = weekInfo.startDate.toLocaleDateString('en-US', {
     month: 'short',
@@ -63,7 +69,7 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
   });
 
   // Filter records within the 7 days of this week
-  const weekRecords = records.filter(r => weekInfo.days.includes(r.dateStr));
+  const weekRecords = viewRecords.filter(r => weekInfo.days.includes(r.dateStr));
   const weekEarnings = weekRecords.reduce((sum, r) => sum + r.totalEarnings, 0);
   const weekBonuses = weekRecords.reduce((sum, r) => sum + (r.totalBonusEarnings || 0), 0);
   const weekTotalSeconds = weekRecords.reduce((sum, r) => sum + r.totalSeconds, 0);
@@ -82,7 +88,8 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
   const weekGoalExceeded = Math.max(0, weekEarnings - weeklyGoalTarget);
 
   // Determine days remaining in the viewed week
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // Current workday by the cutoff (local time, never UTC)
+  const todayStr = getWorkday(Date.now(), rule);
   const remainingDaysInWeek = weekInfo.days.filter(d => d >= todayStr).length || 1;
   const dailyNeededPace = weekGoalRemaining > 0 ? weekGoalRemaining / Math.max(1, remainingDaysInWeek) : 0;
 
@@ -112,14 +119,17 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
     const [y, m, d] = dStr.split('-').map(Number);
     const dayDate = new Date(y, m - 1, d, 12, 0, 0);
     const dayName = dayNames[dayDate.getDay()];
-    const dayRecords = records.filter(r => r.dateStr === dStr);
-    const dayRecord = dayRecords[0] || null;
+    const dayRecords = viewRecords.filter(r => r.dateStr === dStr);
+    // Older versions could leave two records on one day: show their combined total
+    const dayRecord = dayRecords.length > 1 ? dayRecords.slice(1).reduce(mergeDayRecords, dayRecords[0]) : dayRecords[0] || null;
+    const firstRecord = dayRecords[0] ? records.find(r => r.id === dayRecords[0].id) || null : null;
 
     return {
       dateStr: dStr,
       dayName,
       formattedDate: `${dayDate.getMonth() + 1}/${dayDate.getDate()}`,
       record: dayRecord,
+      firstRecord,
       isToday: dStr === todayStr,
       hasWorked: !!dayRecord,
     };
@@ -134,6 +144,14 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
               Weekly Performance
             </span>
+            <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+              <select aria-label="Week for app" value={weekApp} onChange={e => setWeekApp(e.target.value)}
+                className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold">
+                <option value="">All apps</option>
+                {appNames.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <span>Week starts {WEEKDAYS[rule.weekStartDay]} {formatClock(rule.weekStartMinutes).replace(' (midnight)', '')}</span>
+            </div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mt-0.5">
               <span>{weekStartStr} – {weekEndStr}</span>
               {weekOffset === 0 && (
@@ -398,7 +416,7 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
                 {/* Body Content */}
                 {day.record ? (
                   <div
-                    onClick={() => onSelectRecord(day.record!)}
+                    onClick={() => onSelectRecord(day.firstRecord!)}
                     className="mt-3 space-y-2 cursor-pointer group"
                   >
                     <div>
@@ -487,7 +505,7 @@ export const WeekDailyView: React.FC<WeekDailyViewProps> = ({
               {/* Footer action if record exists */}
               {day.record && (
                 <button
-                  onClick={() => onSelectRecord(day.record!)}
+                  onClick={() => onSelectRecord(day.firstRecord!)}
                   className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:underline flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <span>Edit / View</span>

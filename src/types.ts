@@ -61,6 +61,10 @@ export interface ActiveSession {
   totalMiles: number;
   workMiles: number;
   notes: string;
+  /** Workday this session belongs to (set at start). */
+  workdayStr?: string;
+  /** 'replace' only after the user confirmed Start over; otherwise saves merge into the day. */
+  saveMode?: 'merge' | 'replace';
 }
 
 /** 'day' = a real shift (default when missing); 'month' / 'year' = catch-up totals for a past period. */
@@ -99,7 +103,21 @@ export interface AppGoals {
   activeTrackerGoal: 'earnings' | 'rate'; // which metric is featured in active shift progress
 }
 
+/** Day/week boundary for one gig app (or the global default). Minutes after midnight. */
+export interface CutoffRule {
+  dayMinutes: number; // workday ends at this time the next morning (240 = 4:00 AM)
+  weekStartDay: number; // 0 = Sunday, 1 = Monday
+  weekStartMinutes: number;
+  weekdayOverrides?: Record<number, number>; // workday weekday (0-6) -> its own cutoff
+}
+
+export interface CutoffSettings {
+  default: CutoffRule;
+  apps: Record<string, CutoffRule>;
+}
+
 export interface AppSettings {
+  cutoffs?: CutoffSettings;
   dayCutoffHour: number; // 0-23 (e.g., 4 for 4:00 AM cutoff)
   weekStartDay: number; // 0 for Sunday, 1 for Monday
   monthStartDay: number; // 1-31 (e.g., 1 for 1st of month)
