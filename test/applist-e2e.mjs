@@ -7,13 +7,13 @@ const p = await (await b.newContext({ viewport: { width: 412, height: 900 }, tim
 const errs = [], out = {};
 p.on('pageerror', e => errs.push('PAGEERROR ' + e.message));
 p.on('console', m => m.type() === 'error' && errs.push(m.text()));
-await p.goto(url, { waitUntil: 'networkidle' }); await p.waitForTimeout(2500);
+await p.goto(url, { waitUntil: 'networkidle' }); await p.waitForTimeout(3500);
 await p.evaluate(() => {
   localStorage.clear(); localStorage.setItem('gig_tracker_has_onboarded', 'true'); localStorage.setItem('gig_tracker_samples_seeded', 'true');
   const st = new Date('2026-10-27T16:00:00').getTime();
   localStorage.setItem('gig_tracker_history_records', JSON.stringify([{ id: 'd1', dateStr: '2026-10-27', startTime: st, endTime: st + 5 * 3600e3, totalSeconds: 18000, workSeconds: 14400, totalMiles: 75, workMiles: 65, platformEarnings: [{ id: 'uber', name: 'Uber Rides', amount: 95 }, { id: 'lyft', name: 'Lyft', amount: 45 }], bonusEarnings: [], totalEarnings: 140, dollarsPerHourTotal: 28, dollarsPerHourWork: 35, dollarsPerMileTotal: 1.87, dollarsPerMileWork: 2.15, notes: '', createdAt: 1 }]));
 });
-await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(2000);
+await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(3000);
 const histBefore = await p.evaluate(() => localStorage.getItem('gig_tracker_history_records'));
 await p.click('[aria-label="Settings"]');
 const sec = p.locator('[data-testid="cutoff-settings"]');

@@ -20,6 +20,7 @@ import {
 import { AppSettings, DayRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
 import { isDayRecord, recordKind } from '../utils/periodSummaries';
+import { monthKeyForRecord, monthKeyForTime, monthPeriodLabel, yearKeyForRecord } from '../utils/workday';
 
 interface PeriodSummariesViewProps {
   records: DayRecord[];
@@ -41,7 +42,7 @@ export const PeriodSummariesView: React.FC<PeriodSummariesViewProps> = ({
     const map = new Map<string, { year: string; records: DayRecord[] }>();
     (records || []).forEach(r => {
       if (!r || !r.dateStr) return;
-      const y = r.dateStr.slice(0, 4);
+      const y = yearKeyForRecord(r, settings); // follows the month start setting
       if (!y) return;
       const existing = map.get(y) || { year: y, records: [] };
       existing.records.push(r);
@@ -69,7 +70,7 @@ export const PeriodSummariesView: React.FC<PeriodSummariesViewProps> = ({
         taxDeduction: totalMiles * (settings.standardMileageRate || 0.67),
       };
     }).sort((a, b) => b.period.localeCompare(a.period));
-  }, [records, settings.standardMileageRate]);
+  }, [records, settings]);
 
   // Monthly Aggregation
   const monthlyData = useMemo(() => {
@@ -77,7 +78,7 @@ export const PeriodSummariesView: React.FC<PeriodSummariesViewProps> = ({
     (records || []).forEach(r => {
       if (!r || !r.dateStr) return;
       if (recordKind(r) === 'year') return; // year summaries only count in yearly totals
-      const ym = r.dateStr.slice(0, 7); // YYYY-MM
+      const ym = monthKeyForRecord(r, settings); // YYYY-MM month period (month start setting)
       if (!ym) return;
       const existing = map.get(ym) || { ym, records: [] };
       existing.records.push(r);
@@ -114,17 +115,19 @@ export const PeriodSummariesView: React.FC<PeriodSummariesViewProps> = ({
         taxDeduction: totalMiles * (settings.standardMileageRate || 0.67),
       };
     }).sort((a, b) => b.rawKey.localeCompare(a.rawKey));
-  }, [records, settings.standardMileageRate]);
+  }, [records, settings]);
 
   // Current year & month progress
-  const currentYearStr = String(new Date().getFullYear());
+  const currentMonthKey = monthKeyForTime(Date.now(), settings);
+  const currentMonthRange = monthPeriodLabel(currentMonthKey, settings);
+  const currentYearStr = currentMonthKey.slice(0, 4);
   const currentYearData = yearlyData.find(y => y.period === currentYearStr);
   const currentYearGross = currentYearData?.totalEarnings || 0;
   const yearlyGoal = settings.goals?.yearlyEarnings || 45000;
   const yearlyGoalPercent = yearlyGoal > 0 ? (currentYearGross / yearlyGoal) * 100 : 0;
   const isYearlyAchieved = currentYearGross >= yearlyGoal;
 
-  const currentMonthData = monthlyData[0];
+  const currentMonthData = monthlyData.find(m => m.rawKey === currentMonthKey);
   const currentMonthGross = currentMonthData?.totalEarnings || 0;
   const monthlyGoal = settings.goals?.monthlyEarnings || 3500;
   const monthlyGoalPercent = monthlyGoal > 0 ? (currentMonthGross / monthlyGoal) * 100 : 0;
@@ -223,6 +226,7 @@ export const PeriodSummariesView: React.FC<PeriodSummariesViewProps> = ({
                 style={{ width: `${Math.min(100, monthlyGoalPercent)}%` }}
               />
             </div>
+            <p className="text-[11px] text-slate-500" data-testid="current-month-range">This month: {currentMonthRange}</p>
             <div className="flex justify-between text-[11px] text-slate-500">
               <span>Current Month: {formatCurrency(currentMonthGross, settings.currency)}</span>
               <span>Remaining: {formatCurrency(Math.max(0, monthlyGoal - currentMonthGross), settings.currency)}</span>

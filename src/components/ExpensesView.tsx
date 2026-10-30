@@ -33,6 +33,7 @@ import {
 import { AppSettings, DayRecord, ExpenseRecord, ScheduleCCategory } from '../types';
 import { SCHEDULE_C_CATEGORIES, getCategoryMeta, CategoryMeta } from '../utils/expenses';
 import { formatCurrency } from '../utils/calculations';
+import { monthKeyForDate, monthKeyForTime } from '../utils/workday';
 import { NumericInput } from './NumericInput';
 
 interface ExpensesViewProps {
@@ -197,8 +198,8 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
   // Date filtering helper
   const now = new Date();
-  const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const currentYearStr = String(now.getFullYear());
+  const currentYm = monthKeyForTime(now.getTime(), settings); // month period (month start setting)
+  const currentYearStr = currentYm.slice(0, 4);
   const thirtyDaysAgoStr = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
 
   // Filtered Expenses
@@ -210,10 +211,10 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
       }
 
       // Time filter
-      if (timeFilter === 'month' && !exp.dateStr.startsWith(currentYm)) {
+      if (timeFilter === 'month' && monthKeyForDate(exp.dateStr, settings) !== currentYm) {
         return false;
       }
-      if (timeFilter === 'year' && !exp.dateStr.startsWith(currentYearStr)) {
+      if (timeFilter === 'year' && monthKeyForDate(exp.dateStr, settings).slice(0, 4) !== currentYearStr) {
         return false;
       }
       if (timeFilter === '30days' && exp.dateStr < thirtyDaysAgoStr) {
@@ -235,7 +236,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({
 
       return true;
     }).sort((a, b) => b.dateStr.localeCompare(a.dateStr) || b.createdAt - a.createdAt);
-  }, [expenses, selectedCategory, timeFilter, searchQuery, currentYm, currentYearStr, thirtyDaysAgoStr]);
+  }, [expenses, selectedCategory, timeFilter, searchQuery, currentYm, currentYearStr, thirtyDaysAgoStr, settings]);
 
   // Aggregate Category Totals (All time or filtered)
   const categoryTotals = useMemo(() => {

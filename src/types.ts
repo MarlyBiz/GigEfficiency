@@ -111,6 +111,11 @@ export interface CutoffRule {
   weekdayOverrides?: Record<number, number>; // workday weekday (0-6) -> its own cutoff
 }
 
+export interface MonthStart {
+  day: number; // 1-28
+  minutes?: number; // minutes after midnight; unset = follow the default workday cutoff
+}
+
 export interface CutoffSettings {
   default: CutoffRule;
   apps: Record<string, CutoffRule>;
@@ -118,6 +123,8 @@ export interface CutoffSettings {
 
 export interface AppSettings {
   cutoffs?: CutoffSettings;
+  /** Month periods: start day (1-28) and time; time defaults to the workday cutoff. */
+  monthStart?: MonthStart;
   dayCutoffHour: number; // 0-23 (e.g., 4 for 4:00 AM cutoff)
   weekStartDay: number; // 0 for Sunday, 1 for Monday
   monthStartDay: number; // 1-31 (e.g., 1 for 1st of month)

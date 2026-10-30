@@ -18,6 +18,7 @@ import {
 import { AppSettings, DayRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
 import { isDayRecord, recordKind } from '../utils/periodSummaries';
+import { monthKeyForRecord } from '../utils/workday';
 
 interface AnalyticsChartsProps {
   records: DayRecord[];
@@ -75,7 +76,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
 
     sortedRecords.forEach(r => {
       if (!r || !r.dateStr) return;
-      const ym = r.dateStr.slice(0, 7); // YYYY-MM
+      const ym = monthKeyForRecord(r, settings); // YYYY-MM month period (month start setting)
       const parts = ym.split('-');
       if (parts.length < 2) return;
       const [y, m] = parts;
@@ -99,8 +100,9 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
         avgPerHour: data.workHours > 0 ? data.earnings / data.workHours : 0,
         avgPerMile: data.miles > 0 ? data.earnings / data.miles : 0,
       }))
+      .sort((a, b) => a.key.localeCompare(b.key))
       .slice(-6);
-  }, [sortedRecords]);
+  }, [sortedRecords, settings]);
 
   // Overall Statistics
   const totalGrossEarnings = records.reduce((s, r) => s + r.totalEarnings, 0);

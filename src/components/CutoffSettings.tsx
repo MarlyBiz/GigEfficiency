@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { AppSettings, CutoffRule } from '../types';
 import { addAppToSettings, removeAppFromSettings, suggestableApps } from '../utils/appList';
+import { monthKeyForTime, monthPeriodLabel, resolveMonthStart } from '../utils/workday';
 import { normalizeCutoffs, ruleFor, minutesToTime, timeToMinutes, formatClock, WEEKDAYS } from '../utils/workday';
 
 const box = 'px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-xs';
@@ -57,6 +58,32 @@ const RuleEditor: React.FC<{ label: string; rule: CutoffRule; onChange: (r: Cuto
   );
 };
 
+const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`;
+
+/** Month start (day 1-28 + time). Default: the 1st at the workday cutoff. */
+const MonthStartEditor: React.FC<{ settings: AppSettings; onChange: (s: AppSettings) => void }> = ({ settings, onChange }) => {
+  const ms = resolveMonthStart(settings);
+  const key = monthKeyForTime(Date.now(), settings);
+  return (
+    <div className="space-y-1.5" data-testid="month-start">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-slate-600 dark:text-slate-400">Month starts</span>
+        <span className="flex gap-1">
+          <select aria-label="Month start day" className={box} value={ms.day}
+            onChange={e => onChange({ ...settings, monthStart: { ...settings.monthStart, day: Number(e.target.value) } })}>
+            {Array.from({ length: 28 }, (_, i) => i + 1).map(d => <option key={d} value={d}>{ordinal(d)}</option>)}
+          </select>
+          <input type="time" aria-label="Month start time" className={box} value={minutesToTime(ms.minutes)}
+            onChange={e => onChange({ ...settings, monthStart: { day: ms.day, minutes: timeToMinutes(e.target.value || '00:00') } })} />
+        </span>
+      </div>
+      <p className="text-[11px] text-slate-500" data-testid="month-period">
+        This month: {monthPeriodLabel(key, settings)}. Used for monthly totals, goals and closeouts{ms.day > 1 ? `; shifts before the ${ordinal(ms.day)} count toward the previous month` : ''}. Days 29-31 aren't offered because not every month has them.
+      </p>
+    </div>
+  );
+};
+
 /** Global default + per-app day/week cutoffs (Uber 4:00 AM / Mon 4:00 AM, others midnight). */
 export const CutoffSettings: React.FC<{ settings: AppSettings; onChange: (s: AppSettings) => void }> = ({ settings, onChange }) => {
   const cutoffs = settings.cutoffs || normalizeCutoffs(settings);
@@ -93,6 +120,7 @@ export const CutoffSettings: React.FC<{ settings: AppSettings; onChange: (s: App
         </p>
       </div>
       <RuleEditor label="Default (timer & all apps)" rule={cutoffs.default} onChange={setDefault} testId="cutoff-default" />
+      <MonthStartEditor settings={settings} onChange={onChange} />
       <div className="border-t border-slate-200 dark:border-slate-800 pt-2 space-y-1.5">
         <span className="font-bold text-slate-800 dark:text-slate-200 block">Per app (weekly view & closeouts)</span>
         {apps.map(name => {
