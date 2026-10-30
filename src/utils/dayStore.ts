@@ -6,7 +6,7 @@
  * already has data are merged in; replacing needs an explicit 'replace'. Every change
  * keeps an undo snapshot of what the day looked like before (last 10, on this phone only).
  */
-import { DayRecord, PlatformSlot, BonusEntry } from '../types';
+import { ActiveSession, DayRecord, PlatformSlot, BonusEntry } from '../types';
 import { isDayRecord } from './periodSummaries';
 
 export const UNDO_KEY = 'gig_tracker_undo_v1';
@@ -19,6 +19,8 @@ export interface UndoSnapshot {
   label: string;
   before: DayRecord[]; // the day's records before the change
   afterIds: string[]; // ids the change left behind (removed again on restore)
+  /** Live-shift timers before a "Restart day" (restore puts the timers back; records untouched) */
+  session?: ActiveSession;
 }
 
 const round2 = (n: number) => Number((Number.isFinite(n) ? n : 0).toFixed(2));
@@ -169,4 +171,37 @@ export function findDuplicateDays(history: DayRecord[]): { next: DayRecord[]; re
     next.push(r);
   }
   return { next, removed };
+}
+
+/**
+ * Restart day: live Work and Total timers back to 0:00:00, still running from now (work stays
+ * paused at zero if it was paused), offsets cleared. Earnings, miles, notes and status untouched.
+ */
+export function restartTimers(s: ActiveSession, now: number): ActiveSession {
+  if (!s.startDayTimestamp || s.status === 'ended' || s.status === 'not_started') return s;
+  return {
+    ...s,
+    startDayTimestamp: now,
+    endDayTimestamp: null,
+    startWorkTimestamp: s.startWorkTimestamp ? now : s.startWorkTimestamp,
+    workSegments: s.status === 'working' ? [{ startTime: now }] : [],
+    breakSegments: s.status === 'on_break' ? [{ startTime: now }] : [],
+    manualAdjustmentSeconds: 0,
+    manualWorkAdjustmentSeconds: 0,
+  };
+}
+
+/** Undo a restart: put the saved timers back, keep everything typed since (earnings, miles, notes). */
+export function restoreTimers(current: ActiveSession, saved: ActiveSession): ActiveSession {
+  return {
+    ...current,
+    status: current.status === 'not_started' || current.status === 'ended' ? current.status : saved.status,
+    startDayTimestamp: saved.startDayTimestamp,
+    endDayTimestamp: saved.endDayTimestamp,
+    startWorkTimestamp: saved.startWorkTimestamp,
+    workSegments: saved.workSegments,
+    breakSegments: saved.breakSegments,
+    manualAdjustmentSeconds: saved.manualAdjustmentSeconds,
+    manualWorkAdjustmentSeconds: saved.manualWorkAdjustmentSeconds,
+  };
 }

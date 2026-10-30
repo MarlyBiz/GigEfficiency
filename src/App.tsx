@@ -43,7 +43,7 @@ import { SummaryEditorModal } from './components/SummaryEditorModal';
 import { emptyDayRecord, isDayRecord, isSummaryRecord, recordKind } from './utils/periodSummaries';
 import { BackHomePrompt } from './components/BackHomePrompt';
 import { ConfirmDayModal, DayConfirmRequest } from './components/ConfirmDayModal';
-import { applyDaySave, applyRestore, findDuplicateDays, makeSnapshot, sameDayRecords, saveUndoSnapshot, SaveMode, UndoSnapshot } from './utils/dayStore';
+import { applyDaySave, applyRestore, findDuplicateDays, restoreTimers, makeSnapshot, sameDayRecords, saveUndoSnapshot, SaveMode, UndoSnapshot } from './utils/dayStore';
 import { getWorkday, ruleFor } from './utils/workday';
 import { useHomeGeofence } from './hooks/useHomeGeofence';
 import { useReminderConfig, syncPushSchedule, nextLocalTime, showLocalNotification } from './utils/reminders';
@@ -308,6 +308,12 @@ export default function App() {
 
   // Undo history: put a day back the way it was (the current state is snapshotted too)
   const handleRestoreUndo = (snap: UndoSnapshot) => {
+    if (snap.session) {
+      // "Restart day" undo: put the live timers back (saved records are not involved)
+      saveUndoSnapshot({ ...makeSnapshot(snap.dateStr, 'Before timer restore', [], []), session: session });
+      handleUpdateSession(prev => restoreTimers(prev, snap.session!));
+      return;
+    }
     const { next, snapshot } = applyRestore(loadHistory(), snap);
     saveUndoSnapshot(snapshot);
     saveHistory(next);

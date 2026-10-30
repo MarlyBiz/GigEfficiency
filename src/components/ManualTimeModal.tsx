@@ -8,6 +8,9 @@ import { X, Clock, Plus, Minus, RotateCcw } from 'lucide-react';
 import { ActiveSession } from '../types';
 import { NumericInput } from './NumericInput';
 import { formatHM } from '../utils/calculations';
+import { makeSnapshot, restartTimers, saveUndoSnapshot } from '../utils/dayStore';
+import { getWorkday, ruleFor } from '../utils/workday';
+import { loadSettings } from '../utils/storage';
 
 /** +5m, −10m, +1h 05m */
 export function formatOffset(seconds: number): string {
@@ -37,9 +40,21 @@ export const ManualTimeModal: React.FC<ManualTimeModalProps> = ({
 }) => {
   // Offsets saved before this pop-up opened, so the pending change can be shown on every tap
   const [opened, setOpened] = useState<{ work: number; total: number } | null>(null);
+  const [confirmRestart, setConfirmRestart] = useState(false);
+  if (!isOpen && confirmRestart) setConfirmRestart(false);
   if (isOpen && !opened) setOpened({ work: session.manualWorkAdjustmentSeconds || 0, total: session.manualAdjustmentSeconds || 0 });
   if (!isOpen && opened) setOpened(null);
   if (!isOpen || !opened) return null;
+
+  const canRestart = !!session.startDayTimestamp && session.status !== 'ended' && session.status !== 'not_started';
+  const doRestart = () => {
+    const day = session.workdayStr || getWorkday(session.startDayTimestamp || Date.now(), ruleFor(loadSettings()));
+    // Undo copy first (Settings > Undo history can put the timers back)
+    saveUndoSnapshot({ ...makeSnapshot(day, 'Timers restarted', [], []), session });
+    onUpdateSession(prev => restartTimers(prev, Date.now()));
+    setOpened({ work: 0, total: 0 });
+    setConfirmRestart(false);
+  };
 
   const workNow = session.manualWorkAdjustmentSeconds || 0;
   const totalNow = session.manualAdjustmentSeconds || 0;
@@ -177,7 +192,28 @@ export const ManualTimeModal: React.FC<ManualTimeModalProps> = ({
               <span>Reset offsets to zero</span>
             </button>
           </div>
+
+          {canRestart && (
+            <button type="button" onClick={() => setConfirmRestart(true)} data-testid="restart-day"
+              className="w-full py-2 rounded-xl border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-400 bg-rose-50/60 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/60 font-bold flex items-center justify-center gap-1.5 cursor-pointer">
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Restart day</span>
+            </button>
+          )}
         </div>
+
+        {confirmRestart && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/50" data-testid="restart-confirm">
+            <div role="alertdialog" aria-labelledby="restart-title" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-xs p-5 shadow-2xl space-y-3 text-xs">
+              <h4 id="restart-title" className="text-base font-bold text-slate-900 dark:text-white">Are you sure?</h4>
+              <p className="text-slate-600 dark:text-slate-300">Restart today's timers from zero? Earnings and miles stay as they are.</p>
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={() => setConfirmRestart(false)} className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold cursor-pointer">Go back</button>
+                <button type="button" onClick={doRestart} className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold cursor-pointer">Yes, restart</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <button
           onClick={onClose}
