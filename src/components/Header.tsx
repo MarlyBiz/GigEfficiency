@@ -16,7 +16,6 @@ import {
   Sun, 
   Moon, 
   HelpCircle,
-  Zap,
   Receipt
 } from 'lucide-react';
 import { ShiftState } from '../types';
@@ -50,9 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between h-16 gap-3">
           {/* Logo & Brand */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
+            <img src="/icon.svg" alt="" width={40} height={40} className="w-10 h-10 rounded-2xl shadow-md shadow-slate-900/10 border border-slate-200 dark:border-slate-700 shrink-0 bg-white" data-testid="app-logo" />
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">

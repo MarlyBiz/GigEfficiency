@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="g" x1="385" y1="545" x2="640" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#078a3c"/>
+      <stop offset="0.45" stop-color="#2bb552"/>
+      <stop offset="1" stop-color="#34c25a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="#fff"/>
+  <g fill="#112039">
+    <rect x="445" y="151" width="134" height="48" rx="24"/>
+    <rect x="477" y="190" width="70" height="45"/>
+    <path d="M512 858 Q505 858 499 850 C420 748 345 655 322 600 Q318 590 316 578 A235 235 0 1 1 708 578 Q706 590 702 600 C679 655 604 748 525 850 Q519 858 512 858 Z"/>
+  </g>
+  <circle cx="512" cy="457" r="188" fill="#fff"/>
+  <g stroke="#112039" stroke-width="10" stroke-linecap="round">
+    <line x1="512" y1="270" x2="512" y2="300"/>
+    <line x1="512" y1="616" x2="512" y2="646"/>
+    <line x1="327" y1="460" x2="357" y2="460"/>
+    <line x1="667" y1="460" x2="697" y2="460"/>
+  </g>
+  <polyline points="389,542 476,449 520,493 590,416" fill="none" stroke="url(#g)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M566 374 L640 357 Q643 356 642 360 L631 434 Q630 438 627 435 Z" fill="#34c25a" stroke="#34c25a" stroke-width="6" stroke-linejoin="round"/>
+</svg>
