@@ -189,6 +189,7 @@ export function applyBackup(backup: GigBackup, mode: 'replace' | 'merge'): Resto
   // have both a year summary and month summaries (the device's existing ones win).
   const periodKeys = (r: DayRecord): string[] => {
     const k = recordKind(r), p = String(r.periodKey || '');
+    if (k === 'week') return [`week:${p}`];
     return k === 'month' ? [`month:${p}`, `month-in-year:${p.slice(0, 4)}`] : [`year:${p}`];
   };
   const keys = new Set<string>();
@@ -203,7 +204,7 @@ export function applyBackup(backup: GigBackup, mode: 'replace' | 'merge'): Resto
     const kind = recordKind(r);
     if (kind !== 'day') {
       const p = String(r.periodKey || '');
-      const clash = kind === 'month'
+      const clash = kind === 'week' ? keys.has(`week:${p}`) : kind === 'month'
         ? keys.has(`month:${p}`) || keys.has(`year:${p.slice(0, 4)}`)
         : keys.has(`year:${p}`) || keys.has(`month-in-year:${p}`);
       if (clash) { duplicates++; continue; }

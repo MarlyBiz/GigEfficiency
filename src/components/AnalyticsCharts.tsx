@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { AppSettings, DayRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
-import { isDayRecord, recordKind } from '../utils/periodSummaries';
+import { isDayRecord, periodParts, recordKind } from '../utils/periodSummaries';
 import { monthKeyForRecord } from '../utils/workday';
 
 /** '2026-10-29' -> '10/29' */
@@ -77,7 +77,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
   const monthlyData = useMemo(() => {
     const map = new Map<string, { label: string; earnings: number; workHours: number; miles: number; count: number }>();
 
-    sortedRecords.forEach(r => {
+    periodParts(sortedRecords).forEach(r => {
       if (!r || !r.dateStr) return;
       const ym = monthKeyForRecord(r, settings); // YYYY-MM month period (month start setting)
       const parts = ym.split('-');

@@ -90,6 +90,17 @@ export function getWeek(ts: number, rule: CutoffRule): { startDate: Date; endDat
   return { startDate: start, endDate, days };
 }
 
+/** The 7 dates of a week starting on startKey. */
+export const weekDates = (startKey: string) => Array.from({ length: 7 }, (_, i) => dateKey(addDays(fromKey(startKey), i)));
+/** 4th day of the week: whichever month holds it holds at least 4 of the 7 days. */
+export const weekMidDate = (startKey: string) => dateKey(addDays(fromKey(startKey), 3));
+/** e.g. "Oct 5 – Oct 11" (adds the year when it isn't this year's). */
+export function weekRangeLabel(startKey: string, now = new Date()): string {
+  const a = fromKey(startKey), b = addDays(a, 6);
+  const f = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return `${f(a)} – ${f(b)}${b.getFullYear() !== now.getFullYear() ? `, ${b.getFullYear()}` : ''}`;
+}
+
 export const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const prettyDate = (dateStr: string) =>
   fromKey(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
@@ -132,6 +143,9 @@ export function monthKeyForDate(dateStr: string, settings: Partial<AppSettings>)
 /** Month period of a record. Catch-up month summaries stay in their entered month. */
 export function monthKeyForRecord(r: DayRecord, settings: Partial<AppSettings>): string {
   if (r.kind === 'month' && r.periodKey) return r.periodKey;
+  // Week summaries: a day part counts on its own date; a whole week counts in the month that
+  // holds most of its days (= the month of its 4th day, using the month start setting).
+  if (r.kind === 'week') return monthKeyForDate(r.attributedDate || weekMidDate(r.periodKey || r.dateStr), settings);
   if (r.kind === 'year') return `${r.periodKey || r.dateStr.slice(0, 4)}-01`;
   if (Number.isFinite(r.startTime) && r.startTime > 0) return monthKeyForTime(r.startTime, settings);
   return monthKeyForDate(r.dateStr, settings);

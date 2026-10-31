@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { AppSettings, DayRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
-import { isDayRecord, recordKind } from '../utils/periodSummaries';
+import { isDayRecord, periodParts, recordKind } from '../utils/periodSummaries';
 import { monthKeyForRecord, monthKeyForTime, monthPeriodLabel, yearKeyForRecord } from '../utils/workday';
 
 interface PeriodSummariesViewProps {
@@ -40,7 +40,7 @@ export const PeriodSummariesView: React.FC<PeriodSummariesViewProps> = ({
   // Yearly Aggregation
   const yearlyData = useMemo(() => {
     const map = new Map<string, { year: string; records: DayRecord[] }>();
-    (records || []).forEach(r => {
+    periodParts(records || []).forEach(r => { // split weeks count each day on its own date
       if (!r || !r.dateStr) return;
       const y = yearKeyForRecord(r, settings); // follows the month start setting
       if (!y) return;
@@ -75,7 +75,7 @@ export const PeriodSummariesView: React.FC<PeriodSummariesViewProps> = ({
   // Monthly Aggregation
   const monthlyData = useMemo(() => {
     const map = new Map<string, { ym: string; records: DayRecord[] }>();
-    (records || []).forEach(r => {
+    periodParts(records || []).forEach(r => { // split weeks count each day on its own date
       if (!r || !r.dateStr) return;
       if (recordKind(r) === 'year') return; // year summaries only count in yearly totals
       const ym = monthKeyForRecord(r, settings); // YYYY-MM month period (month start setting)

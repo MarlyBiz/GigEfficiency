@@ -71,13 +71,30 @@ export interface ActiveSession {
   saveMode?: 'merge' | 'replace';
 }
 
-/** 'day' = a real shift (default when missing); 'month' / 'year' = catch-up totals for a past period. */
-export type RecordKind = 'day' | 'month' | 'year';
+/** 'day' = a real shift (default when missing); 'week' / 'month' / 'year' = catch-up totals for a period. */
+export type RecordKind = 'day' | 'week' | 'month' | 'year';
+
+/** One day of a week catch-up that was broken into days (counts on its own date's month). */
+export interface WeekDayPart {
+  dateStr: string;
+  platformEarnings: PlatformSlot[];
+  cashTips?: number;
+  workSeconds: number;
+  totalSeconds: number;
+  totalMiles: number;
+  workMiles: number;
+}
 
 export interface DayRecord {
   id: string;
   kind?: RecordKind;
-  periodKey?: string; // 'YYYY-MM' for month summaries, 'YYYY' for year summaries
+  periodKey?: string; // 'YYYY-MM-DD' week start for week summaries, 'YYYY-MM' month, 'YYYY' year
+  /** Week summaries: the app whose week start was used (label only). */
+  weekApp?: string;
+  /** Week summaries broken into days: the day amounts ARE the week (totals = their sum). */
+  weekDays?: WeekDayPart[];
+  /** Internal (never stored): the date a split week's day part counts on. */
+  attributedDate?: string;
   /** Ids of saves already folded into this day (makes a repeated save of the same shift a no-op). */
   mergedFrom?: string[];
   dateStr: string; // YYYY-MM-DD

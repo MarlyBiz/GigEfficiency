@@ -23,7 +23,8 @@ import {
 import { AppSettings, DayRecord } from '../types';
 import { formatCurrency, formatDuration, formatRate, formatHM } from '../utils/calculations';
 import { getBonusTypeMeta } from '../utils/bonuses';
-import { isDayRecord, periodLabel, recordKind } from '../utils/periodSummaries';
+import { isDayRecord, periodLabel, periodParts, recordKind } from '../utils/periodSummaries';
+import { monthKeyForRecord } from '../utils/workday';
 
 interface HistoryViewProps {
   records: DayRecord[];
@@ -154,10 +155,10 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                       ) : (
                         <>
                           <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
-                            {periodLabel(recordKind(record) as 'month' | 'year', record.periodKey || record.dateStr.slice(0, 7))}
+                            {periodLabel(recordKind(record) as 'week' | 'month' | 'year', record.periodKey || record.dateStr.slice(0, 7))}
                           </span>
                           <span className="text-[11px] font-bold uppercase tracking-wide text-violet-800 dark:text-violet-300 bg-violet-100 dark:bg-violet-950/70 px-2 py-0.5 rounded-full border border-violet-300 dark:border-violet-800" data-testid="summary-badge">
-                            {recordKind(record) === 'month' ? 'Month summary' : 'Year summary'}
+                            {recordKind(record) === 'week' ? (record.weekDays?.length ? 'Week summary · by day' : 'Week summary') : recordKind(record) === 'month' ? 'Month summary' : 'Year summary'}
                           </span>
                         </>
                       )}
@@ -172,6 +173,15 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                       ) : null}
                     </div>
 
+                    {recordKind(record) === 'week' && (() => {
+                      const byMonth = new Map<string, number>();
+                      for (const pt of periodParts([record])) { const m = monthKeyForRecord(pt, settings); byMonth.set(m, (byMonth.get(m) || 0) + (pt.totalEarnings || 0)); }
+                      return (
+                        <p className="text-[11px] text-violet-700 dark:text-violet-300" data-testid="week-months">
+                          Counts in {[...byMonth.entries()].sort().map(([m, v]) => `${periodLabel('month', m)}${byMonth.size > 1 ? ` ${formatCurrency(v, settings.currency)}` : ''}`).join(' · ')}
+                        </p>
+                      );
+                    })()}
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-400 pt-1">
                       <span>Work $/Hr: <strong className="font-mono text-emerald-700 dark:text-emerald-400">{formatRate(record.dollarsPerHourWork, settings.currency, 'hr')}</strong></span>
                       <span>Total $/Hr: <strong className="font-mono text-blue-700 dark:text-blue-400">{formatRate(record.dollarsPerHourTotal, settings.currency, 'hr')}</strong></span>

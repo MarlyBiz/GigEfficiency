@@ -185,10 +185,21 @@ export function loadHistory(): DayRecord[] {
       const totalEarnings = Number(r?.totalEarnings) || (baseEarnings + totalBonusEarnings + cashTips);
 
       // Catch-up summaries keep their kind + period; anything else is a normal day
-      const kind = r?.kind === 'month' || r?.kind === 'year' ? r.kind : undefined;
+      const kind = r?.kind === 'month' || r?.kind === 'year' || r?.kind === 'week' ? r.kind : undefined;
+      const weekDays = kind === 'week' && Array.isArray(r.weekDays)
+        ? r.weekDays.filter((d: any) => d && typeof d.dateStr === 'string').map((d: any) => ({
+            dateStr: d.dateStr,
+            platformEarnings: Array.isArray(d.platformEarnings) ? d.platformEarnings.map((p: any, i: number) => ({ id: String(p?.id || `wd-${i}`), name: String(p?.name || 'Platform'), amount: Number(p?.amount) || 0 })) : [],
+            cashTips: Number(d.cashTips) || 0,
+            workSeconds: Number(d.workSeconds) || 0, totalSeconds: Number(d.totalSeconds) || 0,
+            totalMiles: Number(d.totalMiles) || 0, workMiles: Number(d.workMiles) || 0,
+          }))
+        : undefined;
       return {
         id: r?.id ? String(r.id) : `shift-${Date.now()}-${rIdx}-${Math.random()}`,
         ...(kind ? { kind, periodKey: String(r.periodKey || '') } : {}),
+        ...(kind === 'week' && r.weekApp ? { weekApp: String(r.weekApp) } : {}),
+        ...(weekDays && weekDays.length ? { weekDays } : {}),
         dateStr: r?.dateStr || new Date().toISOString().slice(0, 10),
         startTime: Number(r?.startTime) || Date.now(),
         endTime: Number(r?.endTime) || Date.now(),
