@@ -65,6 +65,8 @@ export interface ActiveSession {
   cashTips?: number;
   /** Day-only shift target set during the shift (Settings default untouched). amount null = back to default. */
   dayGoal?: { workday: string; amount: number | null };
+  /** Day-only $/hr pace goal set during the shift (Settings default untouched). amount null = back to default. */
+  dayRateGoal?: { workday: string; amount: number | null };
   /** Workday this session belongs to (set at start). */
   workdayStr?: string;
   /** 'replace' only after the user confirmed Start over; otherwise saves merge into the day. */
@@ -113,6 +115,8 @@ export interface DayRecord {
   cashTips?: number;
   /** This day's own earnings goal (set during the shift). Missing = Settings default. */
   dayGoalOverride?: number | null;
+  /** This day's own $/hr pace goal (set during the shift). Missing = Settings default. */
+  dayRateGoalOverride?: number | null;
   dollarsPerHourTotal: number;
   dollarsPerHourWork: number;
   dollarsPerMileTotal: number;

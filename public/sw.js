@@ -2,7 +2,7 @@
  * Gig Efficiency Tracker - Auto-Updating Offline Service Worker
  */
 
-const CACHE_NAME = 'gig-tracker-v2.6.12b';
+const CACHE_NAME = 'gig-tracker-v2.6.13';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',

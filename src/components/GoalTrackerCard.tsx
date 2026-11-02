@@ -19,6 +19,10 @@ interface GoalTrackerCardProps {
   dayGoal?: number;
   isDayGoal?: boolean;
   onSetDayGoal?: (amount: number | null) => void;
+  /** This workday's $/hr pace goal when set during the shift (Settings default stays as is). */
+  dayRateGoal?: number;
+  isDayRateGoal?: boolean;
+  onSetDayRateGoal?: (amount: number | null) => void;
 }
 
 export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
@@ -30,6 +34,9 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
   dayGoal,
   isDayGoal = false,
   onSetDayGoal,
+  dayRateGoal,
+  isDayRateGoal = false,
+  onSetDayRateGoal,
 }) => {
   const [activeTab, setActiveTab] = useState<'earnings' | 'rate'>(
     settings.goals?.activeTrackerGoal || 'earnings'
@@ -39,7 +46,8 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
 
   const defaultDailyGoal = settings.goals?.dailyEarnings || 150;
   const dailyGoal = dayGoal && dayGoal > 0 ? dayGoal : defaultDailyGoal;
-  const hourlyRateGoal = settings.goals?.hourlyRate || 25;
+  const defaultRateGoal = settings.goals?.hourlyRate || 25;
+  const hourlyRateGoal = dayRateGoal && dayRateGoal > 0 ? dayRateGoal : defaultRateGoal;
 
   const workHours = workSeconds / 3600;
   const currentWorkRate = workHours > 0 ? currentEarnings / workHours : 0;
@@ -61,14 +69,8 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
   const isRateGoalAchieved = currentWorkRate >= hourlyRateGoal && workHours >= 0.25;
 
   const handleGoalAdjustment = (delta: number) => {
-    if (!onUpdateSettings) return;
-    if (activeTab === 'rate') {
-      const next = Math.max(5, hourlyRateGoal + delta);
-      onUpdateSettings(prev => ({
-        ...prev,
-        goals: { ...prev.goals, hourlyRate: next },
-      }));
-    }
+    // Day-only: sets today's $/hr goal; Settings default is not touched
+    if (activeTab === 'rate') onSetDayRateGoal?.(Math.max(5, hourlyRateGoal + delta));
   };
 
   const handleSaveCustomGoal = () => {
@@ -77,11 +79,8 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
       if (activeTab === 'earnings') {
         // Day-only: sets this workday's goal; Settings default is not touched
         onSetDayGoal?.(Number(parsed.toFixed(2)));
-      } else if (onUpdateSettings) {
-        onUpdateSettings(prev => ({
-          ...prev,
-          goals: { ...prev.goals, hourlyRate: Number(parsed.toFixed(2)) },
-        }));
+      } else {
+        onSetDayRateGoal?.(Number(parsed.toFixed(2)));
       }
     }
     setIsEditingGoal(false);
@@ -324,7 +323,7 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
                         setIsEditingGoal(true);
                       }}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                      title="Edit custom rate target"
+                      title="Set a $/hr goal for today only"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
@@ -333,6 +332,16 @@ export const GoalTrackerCard: React.FC<GoalTrackerCardProps> = ({
               </div>
             </div>
           </div>
+
+          {isDayRateGoal && (
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400" data-testid="day-rate-goal-note">
+              <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 font-semibold">Today only</span>
+              <span>Default {formatRate(defaultRateGoal, settings.currency, 'hr')}</span>
+              <button onClick={() => { onSetDayRateGoal?.(null); setIsEditingGoal(false); }} className="underline hover:text-slate-800 dark:hover:text-white" data-testid="reset-day-rate-goal">
+                Reset to default
+              </button>
+            </div>
+          )}
 
           {/* Progress Bar Track */}
           <div className="relative w-full h-4 bg-slate-200/90 dark:bg-slate-950 rounded-full overflow-hidden p-0.5 border border-slate-300 dark:border-slate-800 shadow-inner">

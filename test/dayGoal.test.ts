@@ -45,3 +45,16 @@ const r = applyBackup(parseBackup(text), 'merge');
 assert.equal(S.loadHistory().find(x => x.id === 'a')!.dayGoalOverride, 137);
 assert.equal(r.shiftsAdded, 1); // the 'old' day
 console.log('day goal tests: PASS');
+
+// Day-only $/hr pace goal (2.6.13): same pattern; Settings default untouched
+const defR = settings.goals.hourlyRate;
+assert.deepEqual(D.effectiveDayRateGoal(sess, [], '2026-10-30', defR), { goal: defR, isOverride: false });
+const r1 = { ...sess, dayRateGoal: { workday: '2026-10-30', amount: 31 } };
+assert.deepEqual(D.effectiveDayRateGoal(r1, [], '2026-10-30', defR), { goal: 31, isOverride: true });
+assert.deepEqual(D.effectiveDayRateGoal(r1, [], '2026-10-31', defR), { goal: defR, isOverride: false });
+assert.equal(D.effectiveDayRateGoal({ dayRateGoal: { workday: '2026-10-30', amount: null } }, [], '2026-10-30', defR).isOverride, false);
+const ra = rec('ra', st, { dayRateGoalOverride: 31 });
+assert.deepEqual(D.effectiveDayRateGoal(S.createInitialSession(settings), [ra], '2026-10-30', defR), { goal: 31, isOverride: true });
+assert.equal(D.applyDaySave([ra], rec('rb', st + 2 * 3600e3)).next[0].dayRateGoalOverride, 31);
+assert.equal(S.loadSettings().goals.hourlyRate, defR);
+console.log('day $/hr goal OK');

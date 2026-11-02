@@ -217,6 +217,7 @@ export function applyBackup(backup: GigBackup, mode: 'replace' | 'merge'): Resto
       duplicates++;
       const mine = byMinute.get(k1); // same day already here: keep its data, but take the backup's day goal if it has none
       if (mine && mine.dayGoalOverride === undefined && Number(r.dayGoalOverride) > 0) { mine.dayGoalOverride = Number(r.dayGoalOverride); goalsCarried++; }
+      if (mine && mine.dayRateGoalOverride === undefined && Number(r.dayRateGoalOverride) > 0) { mine.dayRateGoalOverride = Number(r.dayRateGoalOverride); goalsCarried++; }
       continue;
     }
     keys.add(k1); keys.add(k2);

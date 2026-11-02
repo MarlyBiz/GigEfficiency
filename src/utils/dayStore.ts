@@ -70,6 +70,7 @@ export function mergeDayRecords(existing: DayRecord, add: DayRecord): DayRecord 
     notes: [...new Set(notes)].join(' | '),
     // The later save's day goal wins when it set one (null = reset to default); otherwise keep the day's.
     dayGoalOverride: add.dayGoalOverride !== undefined ? add.dayGoalOverride : existing.dayGoalOverride,
+    dayRateGoalOverride: add.dayRateGoalOverride !== undefined ? add.dayRateGoalOverride : existing.dayRateGoalOverride,
   });
 }
 
@@ -87,6 +88,24 @@ export function effectiveDayGoal(
   if (o === undefined) {
     const rec = records.find(r => isDayRecord(r) && r.dateStr === workday && r.dayGoalOverride !== undefined);
     o = rec ? rec.dayGoalOverride : undefined;
+  }
+  return o != null && o > 0 ? { goal: o, isOverride: true } : { goal: defaultGoal, isOverride: false };
+}
+
+/** Day-only $/hr goal from the session, if it belongs to this workday. undefined = not set this session. */
+export function sessionDayRateGoal(s: { dayRateGoal?: { workday: string; amount: number | null } }, workday: string): number | null | undefined {
+  return s.dayRateGoal && s.dayRateGoal.workday === workday ? s.dayRateGoal.amount : undefined;
+}
+
+/** The $/hr pace goal for a workday: this session's, else a saved record's, else the Settings default. */
+export function effectiveDayRateGoal(
+  s: { dayRateGoal?: { workday: string; amount: number | null } },
+  records: DayRecord[], workday: string, defaultGoal: number,
+): { goal: number; isOverride: boolean } {
+  let o = sessionDayRateGoal(s, workday);
+  if (o === undefined) {
+    const rec = records.find(r => isDayRecord(r) && r.dateStr === workday && r.dayRateGoalOverride !== undefined);
+    o = rec ? rec.dayRateGoalOverride : undefined;
   }
   return o != null && o > 0 ? { goal: o, isOverride: true } : { goal: defaultGoal, isOverride: false };
 }

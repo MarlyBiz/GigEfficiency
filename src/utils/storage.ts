@@ -213,6 +213,7 @@ export function loadHistory(): DayRecord[] {
         totalBonusEarnings,
         cashTips,
         ...(Number(r?.dayGoalOverride) > 0 ? { dayGoalOverride: Number(r.dayGoalOverride) } : r?.dayGoalOverride === null ? { dayGoalOverride: null } : {}),
+        ...(Number(r?.dayRateGoalOverride) > 0 ? { dayRateGoalOverride: Number(r.dayRateGoalOverride) } : r?.dayRateGoalOverride === null ? { dayRateGoalOverride: null } : {}),
         totalEarnings,
         dollarsPerHourTotal: Number(r?.dollarsPerHourTotal) || 0,
         dollarsPerHourWork: Number(r?.dollarsPerHourWork) || 0,

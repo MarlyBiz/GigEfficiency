@@ -292,7 +292,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
                   Active Work Rate Trend ($/Hour)
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Target benchmark: {formatRate(settings.goals?.hourlyRate || 25, settings.currency, 'hr')}
+                  Work $/hr per day (the $/hr goal is day-only, on Today's shift)
                 </p>
               </div>
               <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">
@@ -307,21 +307,8 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
             ) : (
               <div className="pt-6 pb-2">
                 <div className="h-64 w-full flex items-end gap-0.5 sm:gap-3 px-2 border-b border-slate-200 dark:border-slate-800 pb-2 relative">
-                  {/* Benchmark horizontal reference line */}
-                  <div
-                    className="absolute inset-x-0 border-b-2 border-dashed border-emerald-400/60 z-10 pointer-events-none"
-                    style={{
-                      bottom: `${Math.min(95, ((settings.goals?.hourlyRate || 25) / maxHourlyRate) * 100 * 0.8 + 10)}%`,
-                    }}
-                  >
-                    <span className="absolute right-2 -top-4 text-[10px] font-bold font-mono text-emerald-700 dark:text-emerald-400 bg-white dark:bg-slate-900 px-1 rounded">
-                      Goal {formatRate(settings.goals?.hourlyRate || 25, settings.currency, 'hr')}
-                    </span>
-                  </div>
-
                   {last14Days.map((d, dIdx) => {
                     const heightPercent = Math.min(100, Math.max(10, (d.dollarsPerHourWork / maxHourlyRate) * 100));
-                    const isAboveGoal = d.dollarsPerHourWork >= (settings.goals?.hourlyRate || 25);
                     return (
                       <div key={d.id ? `${d.id}-${dIdx}` : `hourly-${d.dateStr}-${dIdx}`} className="flex-1 min-w-0 flex flex-col items-center gap-2 group z-20">
                         <span className="hidden sm:block text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
@@ -330,9 +317,7 @@ export const AnalyticsCharts: React.FC<AnalyticsChartsProps> = React.memo(({ rec
                         <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-t-md sm:rounded-t-xl h-48 flex items-end p-px sm:p-1">
                           <div
                             className={`w-full rounded-sm sm:rounded-lg transition-all shadow-sm ${
-                              isAboveGoal
-                                ? 'bg-gradient-to-t from-emerald-600 to-teal-400'
-                                : 'bg-gradient-to-t from-blue-600 to-cyan-400'
+                              'bg-gradient-to-t from-emerald-600 to-teal-400'
                             }`}
                             style={{ height: `${heightPercent}%` }}
                           />
